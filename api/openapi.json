@@ -1,0 +1,6482 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BackNest Backend Contract",
+    "version": "1.0.0",
+    "description": "Reserved routes return 501, never simulated success. Archive/compression algorithms must be self-implemented; crypto libraries are allowed."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:4173"
+    }
+  ],
+  "paths": {
+    "/api/v1/capabilities": {
+      "get": {
+        "operationId": "system.capabilities",
+        "summary": "查询能力与真实实现状态",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": true,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capabilities"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/openapi.json": {
+      "get": {
+        "operationId": "system.contract",
+        "summary": "读取接口契约",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": true,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contract"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/filesystem/directories": {
+      "get": {
+        "operationId": "filesystem.directories",
+        "summary": "列出本机可选目录",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": true,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "path",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Native absolute path; backend must canonicalize and validate it."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryListing"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backups": {
+      "post": {
+        "operationId": "backup.start",
+        "summary": "执行目录备份",
+        "tags": [
+          "backup"
+        ],
+        "x-implemented": true,
+        "x-requirement": "backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/restores": {
+      "post": {
+        "operationId": "restore.start",
+        "summary": "执行目录还原",
+        "tags": [
+          "restore"
+        ],
+        "x-implemented": true,
+        "x-requirement": "restore",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/snapshots/verify": {
+      "post": {
+        "operationId": "snapshots.verify",
+        "summary": "校验独立备份版本，供 GUI 导入",
+        "tags": [
+          "restore"
+        ],
+        "x-implemented": true,
+        "x-requirement": "restore",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{jobId}": {
+      "get": {
+        "operationId": "jobs.get",
+        "summary": "查询真实运行进度",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": true,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{jobId}/cancel": {
+      "post": {
+        "operationId": "jobs.cancel",
+        "summary": "请求取消运行",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/filesystem/types/inspect": {
+      "post": {
+        "operationId": "fileTypes.inspect",
+        "summary": "检查普通、链接和特殊文件支持情况",
+        "tags": [
+          "file_types"
+        ],
+        "x-implemented": false,
+        "x-requirement": "file_types",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileTypeReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/metadata/read": {
+      "post": {
+        "operationId": "metadata.read",
+        "summary": "读取文件元数据",
+        "tags": [
+          "metadata"
+        ],
+        "x-implemented": false,
+        "x-requirement": "metadata",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryMetadata"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetadataRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/metadata/apply": {
+      "post": {
+        "operationId": "metadata.apply",
+        "summary": "恢复文件元数据",
+        "tags": [
+          "metadata"
+        ],
+        "x-implemented": false,
+        "x-requirement": "metadata",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetadataRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/filters/preview": {
+      "post": {
+        "operationId": "filters.preview",
+        "summary": "预览六维筛选结果",
+        "tags": [
+          "custom_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "custom_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterPreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/filters/validate": {
+      "post": {
+        "operationId": "filters.validate",
+        "summary": "校验六维规则及组合",
+        "tags": [
+          "custom_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "custom_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterValidation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/archive/algorithms": {
+      "get": {
+        "operationId": "archive.algorithms",
+        "summary": "列出已实现算法",
+        "tags": [
+          "archive"
+        ],
+        "x-implemented": false,
+        "x-requirement": "archive",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlgorithmList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/compression/algorithms": {
+      "get": {
+        "operationId": "compression.algorithms",
+        "summary": "列出已实现算法",
+        "tags": [
+          "compression"
+        ],
+        "x-implemented": false,
+        "x-requirement": "compression",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlgorithmList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encryption/algorithms": {
+      "get": {
+        "operationId": "encryption.algorithms",
+        "summary": "列出已实现算法",
+        "tags": [
+          "encryption"
+        ],
+        "x-implemented": false,
+        "x-requirement": "encryption",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlgorithmList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/archive/pack": {
+      "post": {
+        "operationId": "archive.pack",
+        "summary": "pack 文件数据",
+        "tags": [
+          "archive"
+        ],
+        "x-implemented": false,
+        "x-requirement": "archive",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodecRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/archive/unpack": {
+      "post": {
+        "operationId": "archive.unpack",
+        "summary": "unpack 文件数据",
+        "tags": [
+          "archive"
+        ],
+        "x-implemented": false,
+        "x-requirement": "archive",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodecRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/compression/compress": {
+      "post": {
+        "operationId": "compression.compress",
+        "summary": "compress 文件数据",
+        "tags": [
+          "compression"
+        ],
+        "x-implemented": false,
+        "x-requirement": "compression",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodecRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/compression/decompress": {
+      "post": {
+        "operationId": "compression.decompress",
+        "summary": "decompress 文件数据",
+        "tags": [
+          "compression"
+        ],
+        "x-implemented": false,
+        "x-requirement": "compression",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodecRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encryption/encrypt": {
+      "post": {
+        "operationId": "encryption.encrypt",
+        "summary": "encrypt 文件数据",
+        "tags": [
+          "encryption"
+        ],
+        "x-implemented": false,
+        "x-requirement": "encryption",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CryptoRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/encryption/decrypt": {
+      "post": {
+        "operationId": "encryption.decrypt",
+        "summary": "decrypt 文件数据",
+        "tags": [
+          "encryption"
+        ],
+        "x-implemented": false,
+        "x-requirement": "encryption",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CryptoRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/archive/list": {
+      "post": {
+        "operationId": "archive.list",
+        "summary": "预览包内条目",
+        "tags": [
+          "archive"
+        ],
+        "x-implemented": false,
+        "x-requirement": "archive",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/secrets": {
+      "post": {
+        "operationId": "secrets.create",
+        "summary": "将敏感输入换为短期 secretRef",
+        "tags": [
+          "encryption"
+        ],
+        "x-implemented": false,
+        "x-requirement": "encryption",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecretReference"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SecretRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/secrets/{secretId}": {
+      "delete": {
+        "operationId": "secrets.revoke",
+        "summary": "销毁临时密码引用",
+        "tags": [
+          "encryption"
+        ],
+        "x-implemented": false,
+        "x-requirement": "encryption",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "secretId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks": {
+      "get": {
+        "operationId": "tasks.list",
+        "summary": "列出 tasks",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRecordList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "tasks.create",
+        "summary": "新增 tasks",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Task"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{id}": {
+      "patch": {
+        "operationId": "tasks.update",
+        "summary": "更新 tasks",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Task"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "tasks.delete",
+        "summary": "删除 tasks 配置（默认不删除磁盘备份）",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/schedules": {
+      "get": {
+        "operationId": "schedules.list",
+        "summary": "列出 schedules",
+        "tags": [
+          "scheduled_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "scheduled_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleRecordList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "schedules.create",
+        "summary": "新增 schedules",
+        "tags": [
+          "scheduled_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "scheduled_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Schedule"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/schedules/{id}": {
+      "patch": {
+        "operationId": "schedules.update",
+        "summary": "更新 schedules",
+        "tags": [
+          "scheduled_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "scheduled_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Schedule"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "schedules.delete",
+        "summary": "删除 schedules 配置（默认不删除磁盘备份）",
+        "tags": [
+          "scheduled_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "scheduled_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/remotes": {
+      "get": {
+        "operationId": "remotes.list",
+        "summary": "列出 remotes",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteRecordList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "remotes.create",
+        "summary": "新增 remotes",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoteConfig"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/remotes/{id}": {
+      "patch": {
+        "operationId": "remotes.update",
+        "summary": "更新 remotes",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoteConfig"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "remotes.delete",
+        "summary": "删除 remotes 配置（默认不删除磁盘备份）",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "operationId": "users.list",
+        "summary": "列出 users",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRecordList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "users.create",
+        "summary": "新增 users",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "patch": {
+        "operationId": "users.update",
+        "summary": "更新 users",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "users.delete",
+        "summary": "删除 users 配置（默认不删除磁盘备份）",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/schedules/{id}/next-runs": {
+      "get": {
+        "operationId": "schedules.nextRuns",
+        "summary": "查询下次执行时间",
+        "tags": [
+          "scheduled_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "scheduled_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NextRuns"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/watchers": {
+      "post": {
+        "operationId": "watchers.start",
+        "summary": "开始实时监听",
+        "tags": [
+          "realtime_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "realtime_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/watchers/{watchId}": {
+      "get": {
+        "operationId": "watchers.get",
+        "summary": "查询监听状态",
+        "tags": [
+          "realtime_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "realtime_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "watchId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "watchers.stop",
+        "summary": "停止实时监听",
+        "tags": [
+          "realtime_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "realtime_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "watchId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/remotes/{id}/test": {
+      "post": {
+        "operationId": "remotes.test",
+        "summary": "测试远端连接",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteConnection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/remotes/{id}/upload": {
+      "post": {
+        "operationId": "remotes.upload",
+        "summary": "上传备份，预留续传",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/remotes/{id}/download": {
+      "post": {
+        "operationId": "remotes.download",
+        "summary": "下载备份，预留续传",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/remotes/{id}/snapshots": {
+      "get": {
+        "operationId": "remoteCatalog.list",
+        "summary": "查询远端备份元数据",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotRecordList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "remoteCatalog.register",
+        "summary": "登记远端备份元数据",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogEntry"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/remotes/{id}/snapshots/{snapshotId}": {
+      "get": {
+        "operationId": "remoteCatalog.get",
+        "summary": "读取远端备份元数据",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "remoteCatalog.delete",
+        "summary": "移除远端元数据记录，默认不删除数据",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sessions": {
+      "post": {
+        "operationId": "auth.login",
+        "summary": "远端用户登录",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sessions/{sessionId}": {
+      "delete": {
+        "operationId": "auth.logout",
+        "summary": "撤销远端登录会话",
+        "tags": [
+          "network_backup"
+        ],
+        "x-implemented": false,
+        "x-requirement": "network_backup",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/snapshots": {
+      "get": {
+        "operationId": "snapshots.list",
+        "summary": "后端版本目录索引",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotRecordList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "snapshots.register",
+        "summary": "后端登记已验证版本",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogEntry"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/snapshots/{snapshotId}": {
+      "delete": {
+        "operationId": "snapshots.delete",
+        "summary": "删除版本索引，默认不删除磁盘数据",
+        "tags": [
+          "other"
+        ],
+        "x-implemented": false,
+        "x-requirement": "other",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/settings": {
+      "get": {
+        "operationId": "settings.get",
+        "summary": "读取后端偏好",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Settings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "settings.update",
+        "summary": "保存后端偏好",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Settings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Settings"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/activity": {
+      "get": {
+        "operationId": "activity.list",
+        "summary": "读取后端操作日志",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityRecordList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/activity/export": {
+      "post": {
+        "operationId": "activity.export",
+        "summary": "导出后端操作日志",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityExport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workspace/overview": {
+      "get": {
+        "operationId": "workspace.overview",
+        "summary": "获取后端统计",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": false,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Overview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/incremental/preview": {
+      "post": {
+        "operationId": "incremental.preview",
+        "summary": "预留增量比较",
+        "tags": [
+          "other"
+        ],
+        "x-implemented": false,
+        "x-requirement": "other",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncrementalPreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupRequest"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "minLength": 1
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "capability": {
+            "type": "string",
+            "minLength": 1
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "error",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "JobAccepted": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "Job": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "enum": [
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "phase": {
+            "type": "string",
+            "minLength": 1
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalFiles": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "path": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/OperationResult"
+          },
+          "error": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "operation",
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "OperationResult": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "source": {
+            "type": "string"
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "directories": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "operation",
+          "path",
+          "files",
+          "directories",
+          "bytes",
+          "verified",
+          "completedAt"
+        ],
+        "additionalProperties": false
+      },
+      "FilterSpec": {
+        "type": "object",
+        "properties": {
+          "paths": {
+            "type": "object",
+            "properties": {
+              "include": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "exclude": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "File categories/extensions; special-file semantics use FileTypePolicy."
+          },
+          "names": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "File-name glob patterns."
+          },
+          "time": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "enum": [
+                  "modified",
+                  "created",
+                  "accessed"
+                ]
+              },
+              "from": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "to": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "field"
+            ],
+            "additionalProperties": false
+          },
+          "size": {
+            "type": "object",
+            "properties": {
+              "minBytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "maxBytes": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnerSelector"
+            }
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "OwnerSelector": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "enum": [
+              "posix",
+              "windows"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "platform",
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "FileTypePolicy": {
+        "type": "object",
+        "properties": {
+          "symlinks": {
+            "enum": [
+              "reject",
+              "preserve"
+            ]
+          },
+          "hardlinks": {
+            "enum": [
+              "copy_contents",
+              "preserve"
+            ]
+          },
+          "specialFiles": {
+            "enum": [
+              "reject",
+              "preserve"
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "MetadataPolicy": {
+        "type": "object",
+        "properties": {
+          "preserve": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "times",
+                "permissions",
+                "owner",
+                "acl",
+                "xattrs"
+              ]
+            }
+          },
+          "unsupported": {
+            "enum": [
+              "fail",
+              "report"
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "CodecOptions": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "string",
+            "minLength": 1
+          },
+          "blockBytes": {
+            "type": "integer",
+            "minimum": 1024
+          },
+          "maxOutputBytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "algorithm"
+        ],
+        "additionalProperties": false
+      },
+      "EncryptionOptions": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "string",
+            "minLength": 1
+          },
+          "secretRef": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "algorithm",
+          "secretRef"
+        ],
+        "additionalProperties": false
+      },
+      "BackupOptions": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "enum": [
+              "full",
+              "incremental"
+            ]
+          },
+          "filters": {
+            "$ref": "#/components/schemas/FilterSpec"
+          },
+          "fileTypes": {
+            "$ref": "#/components/schemas/FileTypePolicy"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MetadataPolicy"
+          },
+          "archive": {
+            "$ref": "#/components/schemas/CodecOptions"
+          },
+          "compression": {
+            "$ref": "#/components/schemas/CodecOptions"
+          },
+          "encryption": {
+            "$ref": "#/components/schemas/EncryptionOptions"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "BackupRequest": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "destination": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "options": {
+            "$ref": "#/components/schemas/BackupOptions"
+          }
+        },
+        "required": [
+          "source",
+          "destination"
+        ],
+        "additionalProperties": false
+      },
+      "RestoreRequest": {
+        "type": "object",
+        "properties": {
+          "snapshot": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "destination": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "conflictPolicy": {
+            "enum": [
+              "require_empty",
+              "skip",
+              "rename",
+              "overwrite"
+            ]
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MetadataPolicy"
+          },
+          "secretRef": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "snapshot",
+          "destination"
+        ],
+        "additionalProperties": false
+      },
+      "SnapshotRequest": {
+        "type": "object",
+        "properties": {
+          "snapshot": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          }
+        },
+        "required": [
+          "snapshot"
+        ],
+        "additionalProperties": false
+      },
+      "ScanRequest": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "filters": {
+            "$ref": "#/components/schemas/FilterSpec"
+          },
+          "fileTypes": {
+            "$ref": "#/components/schemas/FileTypePolicy"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "additionalProperties": false
+      },
+      "MetadataRequest": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "attributes": {
+            "type": "object"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/MetadataPolicy"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "CodecRequest": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "destination": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "options": {
+            "$ref": "#/components/schemas/CodecOptions"
+          },
+          "secretRef": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "source",
+          "destination",
+          "options"
+        ],
+        "additionalProperties": false
+      },
+      "Task": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "destination": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "options": {
+            "$ref": "#/components/schemas/TaskOptions"
+          }
+        },
+        "required": [
+          "name",
+          "source",
+          "destination"
+        ],
+        "additionalProperties": false
+      },
+      "Schedule": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expression": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "missedRunPolicy": {
+            "enum": [
+              "skip",
+              "run_once"
+            ]
+          }
+        },
+        "required": [
+          "taskId",
+          "timezone",
+          "expression"
+        ],
+        "additionalProperties": false
+      },
+      "WatchRequest": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "debounceMs": {
+            "type": "integer",
+            "minimum": 100
+          },
+          "excludedPaths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Native absolute path; backend must canonicalize and validate it."
+            }
+          }
+        },
+        "required": [
+          "taskId",
+          "source"
+        ],
+        "additionalProperties": false
+      },
+      "RemoteConfig": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "endpoint": {
+            "type": "string",
+            "pattern": "^https://"
+          },
+          "credentialRef": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "name",
+          "endpoint"
+        ],
+        "additionalProperties": false
+      },
+      "TransferRequest": {
+        "type": "object",
+        "properties": {
+          "snapshot": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "destination": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "snapshotId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resumeToken": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "UserRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "secretRef": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "additionalProperties": false
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "format": "password",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "SecretRequest": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "format": "password",
+            "writeOnly": true
+          },
+          "purpose": {
+            "enum": [
+              "encryption",
+              "remote_auth"
+            ]
+          }
+        },
+        "required": [
+          "value",
+          "purpose"
+        ],
+        "additionalProperties": false
+      },
+      "Settings": {
+        "type": "object",
+        "properties": {
+          "destination": {
+            "type": "string"
+          },
+          "defaultOptions": {
+            "$ref": "#/components/schemas/BackupOptions"
+          },
+          "keepVersions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "notifications": {
+            "type": "boolean"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "CatalogEntry": {
+        "type": "object",
+        "properties": {
+          "snapshot": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remoteId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "snapshot"
+        ],
+        "additionalProperties": false
+      },
+      "DirectoryListing": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "parent": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "directories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Native absolute path; backend must canonicalize and validate it."
+                }
+              },
+              "required": [
+                "name",
+                "path"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "path",
+          "parent",
+          "directories"
+        ],
+        "additionalProperties": false
+      },
+      "DomainRecord": {
+        "type": "object",
+        "description": "Reserved domain payload; refine its fields and bump the contract before advertising implementation."
+      },
+      "DomainList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DomainRecord"
+        }
+      },
+      "Capabilities": {
+        "type": "object",
+        "required": [
+          "apiVersion",
+          "operations",
+          "requirements"
+        ]
+      },
+      "Contract": {
+        "type": "object"
+      },
+      "TaskOptions": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "enum": [
+              "full",
+              "incremental"
+            ]
+          },
+          "filters": {
+            "$ref": "#/components/schemas/FilterSpec"
+          },
+          "fileTypes": {
+            "$ref": "#/components/schemas/FileTypePolicy"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MetadataPolicy"
+          },
+          "archive": {
+            "$ref": "#/components/schemas/CodecOptions"
+          },
+          "compression": {
+            "$ref": "#/components/schemas/CodecOptions"
+          },
+          "encryption": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "algorithm": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "enabled"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "CryptoRequest": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "destination": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "options": {
+            "$ref": "#/components/schemas/CodecOptions"
+          },
+          "secretRef": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "source",
+          "destination",
+          "options",
+          "secretRef"
+        ],
+        "additionalProperties": false
+      },
+      "EntryMetadata": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "owner": {
+            "$ref": "#/components/schemas/OwnerSelector"
+          },
+          "modifiedAt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "accessedAt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "permissions": {
+            "type": "object"
+          },
+          "acl": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "xattrs": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "path",
+          "kind",
+          "bytes"
+        ],
+        "additionalProperties": false
+      },
+      "EntryList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/EntryMetadata"
+        }
+      },
+      "FileTypeReport": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "$ref": "#/components/schemas/EntryList"
+          },
+          "unsupported": {
+            "$ref": "#/components/schemas/EntryList"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "entries",
+          "unsupported"
+        ],
+        "additionalProperties": false
+      },
+      "FilterPreview": {
+        "type": "object",
+        "properties": {
+          "included": {
+            "$ref": "#/components/schemas/EntryList"
+          },
+          "excluded": {
+            "$ref": "#/components/schemas/EntryList"
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "included",
+          "excluded",
+          "files",
+          "bytes"
+        ],
+        "additionalProperties": false
+      },
+      "FilterValidation": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "valid",
+          "errors"
+        ],
+        "additionalProperties": false
+      },
+      "Algorithm": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "selfImplemented": {
+            "type": "boolean"
+          },
+          "supportedPlatforms": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "selfImplemented"
+        ],
+        "additionalProperties": false
+      },
+      "AlgorithmList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Algorithm"
+        }
+      },
+      "SecretReference": {
+        "type": "object",
+        "properties": {
+          "secretRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "secretRef",
+          "expiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "TaskRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "destination": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "options": {
+            "$ref": "#/components/schemas/TaskOptions"
+          },
+          "state": {
+            "enum": [
+              "ready",
+              "running",
+              "completed",
+              "failed"
+            ]
+          },
+          "lastRunAt": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "source",
+          "destination",
+          "options",
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "ScheduleRecord": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expression": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "missedRunPolicy": {
+            "enum": [
+              "skip",
+              "run_once"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "nextRunAt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lastRunAt": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "taskId",
+          "timezone",
+          "expression",
+          "enabled"
+        ],
+        "additionalProperties": false
+      },
+      "WatchState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "state": {
+            "enum": [
+              "running",
+              "stopped",
+              "failed"
+            ]
+          },
+          "lastEventAt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "error": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "taskId",
+          "source",
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "RemoteRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "endpoint": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "configured",
+              "connected",
+              "failed"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "endpoint",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "RemoteConnection": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "tlsVerified": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "connected",
+          "tlsVerified"
+        ],
+        "additionalProperties": false
+      },
+      "SnapshotRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "remoteId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Native absolute path; backend must canonicalize and validate it."
+          },
+          "createdAt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "files",
+          "bytes",
+          "verified"
+        ],
+        "additionalProperties": false
+      },
+      "UserRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "username": {
+            "type": "string",
+            "minLength": 1
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "roles"
+        ],
+        "additionalProperties": false
+      },
+      "AuthSession": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "accessToken": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expiresAt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserRecord"
+          }
+        },
+        "required": [
+          "id",
+          "accessToken",
+          "expiresAt",
+          "user"
+        ],
+        "additionalProperties": false
+      },
+      "DeleteResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "recordDeleted": {
+            "type": "boolean"
+          },
+          "dataDeleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "recordDeleted",
+          "dataDeleted"
+        ],
+        "additionalProperties": false
+      },
+      "ActivityRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "jobId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "time": {
+            "type": "string",
+            "minLength": 1
+          },
+          "level": {
+            "enum": [
+              "info",
+              "success",
+              "warning",
+              "error"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "time",
+          "level",
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "ActivityExport": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "enum": [
+              "json"
+            ]
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityRecord"
+            }
+          }
+        },
+        "required": [
+          "format",
+          "records"
+        ],
+        "additionalProperties": false
+      },
+      "Overview": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "snapshots": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "backedUpFiles": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lastActivity": {
+            "$ref": "#/components/schemas/ActivityRecord"
+          }
+        },
+        "required": [
+          "tasks",
+          "snapshots",
+          "backedUpFiles"
+        ],
+        "additionalProperties": false
+      },
+      "IncrementalPreview": {
+        "type": "object",
+        "properties": {
+          "added": {
+            "$ref": "#/components/schemas/EntryList"
+          },
+          "changed": {
+            "$ref": "#/components/schemas/EntryList"
+          },
+          "deleted": {
+            "$ref": "#/components/schemas/EntryList"
+          },
+          "baseSnapshotId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "added",
+          "changed",
+          "deleted"
+        ],
+        "additionalProperties": false
+      },
+      "TaskRecordList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TaskRecord"
+        }
+      },
+      "ScheduleRecordList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ScheduleRecord"
+        }
+      },
+      "RemoteRecordList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/RemoteRecord"
+        }
+      },
+      "SnapshotRecordList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SnapshotRecord"
+        }
+      },
+      "UserRecordList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/UserRecord"
+        }
+      },
+      "ActivityRecordList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ActivityRecord"
+        }
+      },
+      "NextRuns": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "securitySchemes": {
+      "LocalSession": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-BackNest-Token"
+      }
+    }
+  }
+}

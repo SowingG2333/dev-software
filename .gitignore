@@ -1,0 +1,11 @@
+build/
+__pycache__/
+*.pyc
+.backnest/
+build-cmake/
+/artifacts/
+.DS_Store
+.env
+.env.*
+!.env.example
+.venv/

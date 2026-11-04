@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>BackNest state migration checks</title>
+<script src="../state.js"></script>
+<pre id="results"></pre>
+<script>
+'use strict';
+const results = [];
+function check(name, test) {
+  try { test(); results.push(`PASS ${name}`); }
+  catch (error) { results.push(`FAIL ${name}: ${error.message}`); }
+}
+function assert(condition, message) { if (!condition) throw Error(message); }
+check('New workspace has no tasks, logs, versions, or fabricated destination', () => {
+  const state = createInitialState();
+  assert(state.tasks.length === 0 && state.logs.length === 0, 'Preloaded records found');
+  assert(state.settings.target === '', 'Preloaded destination found');
+});
+check('Legacy migration removes all four exact seed tasks', () => {
+  const state = migrateStoredState({
+    tasks: [
+      {id:'work',path:'/Users/demo/Documents/工作文档'},
+      {id:'photos',path:'/Users/demo/Pictures/生活相册'},
+      {id:'project',path:'/Users/demo/Projects/BackNest'},
+      {id:'study',path:'/Users/demo/Documents/学习资料'},
+    ], logs: [], settings: {target:'/Volumes/Backup'},
+  });
+  assert(state.tasks.length === 0, 'Seed task retained');
+  assert(state.settings.target === '', 'Seed destination retained');
+});
+check('Migration preserves user task configuration and does not mutate input', () => {
+  const previous = {
+    tasks: [{id:'task-123',name:'工作文档',path:'/my/documents',target:'/my/backup',type:'完整备份',compression:false,enabled:true,schedule:'每天 22:00',files:128,size:'24.6 MB',status:'done',versions:[{label:'Fake snapshot'}]}],
+    logs: [{title:'工作文档 · 已创建任务',detail:'A real UI action',time:'今天 12:00'}],
+    settings: {target:'/my/backup',keep:15,compression:false},
+  };
+  const state = migrateStoredState(previous);
+  const task = state.tasks[0];
+  assert(task.id === 'task-123' && task.path === '/my/documents' && task.target === '/my/backup', 'User task lost');
+  assert(task.enabled && !task.compression && task.schedule === '每天 22:00', 'Configuration changed');
+  assert(task.versions.length === 0 && task.status === 'ready', 'Simulated backup retained');
+  assert(task.files === null && task.size === '未读取', 'Fabricated file stats retained');
+  assert(state.logs.length === 1 && state.settings.keep === 15, 'User logs or preferences lost');
+  assert(previous.tasks[0].versions.length === 1, 'Input mutated');
+});
+check('Seed IDs with different user paths are preserved', () => {
+  const state = migrateStoredState({tasks:[{id:'work',path:'/real/path',versions:[]}],logs:[],settings:{target:''}});
+  assert(state.tasks.length === 1, 'Task removed by ID alone');
+});
+check('Only exact preloaded logs are removed; user simulations are labelled honestly', () => {
+  const state = migrateStoredState({tasks:[],settings:{target:''},logs:[
+    {title:'工作文档 · 备份演示完成',detail:'1,284 个文件 · 增量备份 · 耗时 12 秒',time:'今天 10:32'},
+    {title:'用户任务 · 备份演示完成',detail:'128 个文件',time:'今天 12:00'},
+  ]});
+  assert(state.logs.length === 1 && state.logs[0].title === '用户任务 · 备份界面演示', 'Wrong logs removed');
+  assert(state.logs[0].detail.includes('未创建'), 'Simulation presented as a real backup');
+});
+check('Migration is idempotent and preserves newly scanned file metadata', () => {
+  const state = createInitialState();
+  state.tasks.push({id:'task-new',files:2,size:'3.0 KB',sourceScanned:true,versions:[],status:'ready'});
+  assert(JSON.stringify(migrateStoredState(state)) === JSON.stringify(state), 'Current data changed on reload');
+});
+check('Missing or invalid storage starts empty', () => {
+  for (const input of [null, {}, {tasks:'bad',logs:[],settings:{}}]) {
+    assert(migrateStoredState(input).tasks.length === 0, 'Invalid data introduced tasks');
+  }
+});
+document.getElementById('results').textContent = results.join('\n');
+document.body.dataset.passed = String(results.every(line => line.startsWith('PASS')));
+</script>
