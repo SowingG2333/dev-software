@@ -94,7 +94,7 @@ const BACKEND_OPERATIONS = {
   "encryption.algorithms": {
     "method": "GET",
     "path": "/api/v1/encryption/algorithms",
-    "implemented": false,
+    "implemented": true,
     "requirement": "encryption"
   },
   "archive.pack": {
@@ -124,13 +124,13 @@ const BACKEND_OPERATIONS = {
   "encryption.encrypt": {
     "method": "POST",
     "path": "/api/v1/encryption/encrypt",
-    "implemented": false,
+    "implemented": true,
     "requirement": "encryption"
   },
   "encryption.decrypt": {
     "method": "POST",
     "path": "/api/v1/encryption/decrypt",
-    "implemented": false,
+    "implemented": true,
     "requirement": "encryption"
   },
   "archive.list": {
@@ -142,241 +142,241 @@ const BACKEND_OPERATIONS = {
   "secrets.create": {
     "method": "POST",
     "path": "/api/v1/secrets",
-    "implemented": false,
+    "implemented": true,
     "requirement": "encryption"
   },
   "secrets.revoke": {
     "method": "DELETE",
     "path": "/api/v1/secrets/{secretId}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "encryption"
   },
   "tasks.list": {
     "method": "GET",
     "path": "/api/v1/tasks",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "tasks.create": {
     "method": "POST",
     "path": "/api/v1/tasks",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "tasks.update": {
     "method": "PATCH",
     "path": "/api/v1/tasks/{id}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "tasks.delete": {
     "method": "DELETE",
     "path": "/api/v1/tasks/{id}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "schedules.list": {
     "method": "GET",
     "path": "/api/v1/schedules",
-    "implemented": false,
+    "implemented": true,
     "requirement": "scheduled_backup"
   },
   "schedules.create": {
     "method": "POST",
     "path": "/api/v1/schedules",
-    "implemented": false,
+    "implemented": true,
     "requirement": "scheduled_backup"
   },
   "schedules.update": {
     "method": "PATCH",
     "path": "/api/v1/schedules/{id}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "scheduled_backup"
   },
   "schedules.delete": {
     "method": "DELETE",
     "path": "/api/v1/schedules/{id}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "scheduled_backup"
   },
   "remotes.list": {
     "method": "GET",
     "path": "/api/v1/remotes",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "remotes.create": {
     "method": "POST",
     "path": "/api/v1/remotes",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "remotes.update": {
     "method": "PATCH",
     "path": "/api/v1/remotes/{id}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "remotes.delete": {
     "method": "DELETE",
     "path": "/api/v1/remotes/{id}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "users.list": {
     "method": "GET",
     "path": "/api/v1/users",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "users.create": {
     "method": "POST",
     "path": "/api/v1/users",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "users.update": {
     "method": "PATCH",
     "path": "/api/v1/users/{id}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "users.delete": {
     "method": "DELETE",
     "path": "/api/v1/users/{id}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "schedules.nextRuns": {
     "method": "GET",
     "path": "/api/v1/schedules/{id}/next-runs",
-    "implemented": false,
+    "implemented": true,
     "requirement": "scheduled_backup"
   },
   "watchers.start": {
     "method": "POST",
     "path": "/api/v1/watchers",
-    "implemented": false,
+    "implemented": true,
     "requirement": "realtime_backup"
   },
   "watchers.get": {
     "method": "GET",
     "path": "/api/v1/watchers/{watchId}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "realtime_backup"
   },
   "watchers.stop": {
     "method": "DELETE",
     "path": "/api/v1/watchers/{watchId}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "realtime_backup"
   },
   "remotes.test": {
     "method": "POST",
     "path": "/api/v1/remotes/{id}/test",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "remotes.upload": {
     "method": "POST",
     "path": "/api/v1/remotes/{id}/upload",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "remotes.download": {
     "method": "POST",
     "path": "/api/v1/remotes/{id}/download",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "remoteCatalog.list": {
     "method": "GET",
     "path": "/api/v1/remotes/{id}/snapshots",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "remoteCatalog.register": {
     "method": "POST",
     "path": "/api/v1/remotes/{id}/snapshots",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "remoteCatalog.get": {
     "method": "GET",
     "path": "/api/v1/remotes/{id}/snapshots/{snapshotId}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "remoteCatalog.delete": {
     "method": "DELETE",
     "path": "/api/v1/remotes/{id}/snapshots/{snapshotId}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "auth.login": {
     "method": "POST",
     "path": "/api/v1/auth/sessions",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "auth.logout": {
     "method": "DELETE",
     "path": "/api/v1/auth/sessions/{sessionId}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "network_backup"
   },
   "snapshots.list": {
     "method": "GET",
     "path": "/api/v1/snapshots",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "snapshots.register": {
     "method": "POST",
     "path": "/api/v1/snapshots",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "snapshots.delete": {
     "method": "DELETE",
     "path": "/api/v1/snapshots/{snapshotId}",
-    "implemented": false,
+    "implemented": true,
     "requirement": "other"
   },
   "settings.get": {
     "method": "GET",
     "path": "/api/v1/settings",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "settings.update": {
     "method": "PATCH",
     "path": "/api/v1/settings",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "activity.list": {
     "method": "GET",
     "path": "/api/v1/activity",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "activity.export": {
     "method": "POST",
     "path": "/api/v1/activity/export",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "workspace.overview": {
     "method": "GET",
     "path": "/api/v1/workspace/overview",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "incremental.preview": {
     "method": "POST",
     "path": "/api/v1/incremental/preview",
-    "implemented": false,
+    "implemented": true,
     "requirement": "other"
   }
 };
