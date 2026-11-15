@@ -58,11 +58,11 @@ function render(){
     <nav class="nav" aria-label="主导航">${navs.map(([id,i,name])=>`<button data-view="${id}" class="${view===id?'active':''}" ${view===id?'aria-current="page"':''}>${icon(i)}${name}${id==='backups'?`<span class="nav-count">${state.tasks.length}</span>`:''}</button>`).join('')}</nav>
     <div class="sidebar-bottom">
      <nav class="nav" aria-label="设置导航"><button data-view="settings" class="${view==='settings'?'active':''}">${icon('settings')}偏好设置</button><button data-view="plan" class="${view==='plan'?'active':''}">${icon('help')}项目说明</button></nav>
-     <div class="workspace-info">${icon('monitor')}<div><strong>本地工作区</strong><small>数据保存在当前浏览器</small></div></div>
+     <div class="workspace-info">${icon('monitor')}<div><strong>本地工作区</strong><small>配置保存至本机后端</small></div></div>
     </div>
    </aside>
-   <header class="topbar"><div class="breadcrumb"><button class="icon-btn mobile-menu" aria-label="打开导航" data-action="menu">${icon('menu')}</button><span>本地工作区</span>${icon('chevron')}<span>${title}</span></div><div class="top-actions"><span class="prototype ${nativeSession?'connected':''}"><i></i>${nativeBusy?'正在执行':nativeSession?`本机引擎 · ${nativeSession.engine}`:'未连接引擎'}</span><button class="help-button" data-view="activity">${icon('activity')}<span>查看日志</span></button></div></header>
-   <main class="content" id="main-content">${({overview,backups,restore:restoreView,schedules,activity,settings,plan,extensions}[view]||overview)()}<footer class="footer"><span>${nativeSession?`本机引擎 · ${nativeSession.engine}`:'运行 python3 server.py 后连接本机功能'}</span><span>归档 0.3</span></footer></main>
+   <header class="topbar"><div class="breadcrumb"><button class="icon-btn mobile-menu" aria-label="打开导航" data-action="menu">${icon('menu')}</button><span>本地工作区</span>${icon('chevron')}<span>${title}</span></div><div class="top-actions"><span class="prototype ${nativeSession?'connected':''}"><i></i>${nativeBusy?'正在执行':nativeSession?(nativeSession.desktop?'Qt WebChannel · C++':`本机引擎 · ${nativeSession.engine}`):'未连接引擎'}</span>${activeNativeJob?'<button class="btn" data-native="cancel">取消当前任务</button>':''}<button class="help-button" data-view="activity">${icon('activity')}<span>查看日志</span></button></div></header>
+   <main class="content" id="main-content">${({overview,backups,restore:restoreView,schedules,activity,settings,plan,extensions}[view]||overview)()}<footer class="footer"><span>${nativeSession?(nativeSession.desktop?'Qt WebChannel · C++':`本机引擎 · ${nativeSession.engine}`):'运行 python3 server.py 后连接本机功能'}</span><span>归档 0.3</span></footer></main>
   </div>`;
 }
 function overview(){
@@ -245,15 +245,15 @@ const modalHead=(title,desc='')=>`<div class="modal-head"><div><h2 id="dialog-ti
 function startWizard(){wizard={step:1,name:'',path:'',target:state.settings.target,type:'完整备份',schedule:'手动备份',files:[],error:''};renderWizard()}
 function renderWizard(){const w=wizard;let body='';
  if(w.step===1)body=`<div class="field"><label for="task-name">任务名称</label><input id="task-name" placeholder="例如：工作文档" maxlength="40" value="${esc(w.name)}"></div><div class="field"><label for="task-path">源文件夹</label><div class="input-with-button"><input id="task-path" placeholder="输入本机绝对路径" value="${esc(w.path)}"><button class="btn" data-native="pick-source">浏览</button></div><small>备份此目录中的普通文件、子目录和空目录。基础版遇到链接或特殊文件会报错。</small></div><div class="field"><label for="task-target">备份位置</label><div class="input-with-button"><input id="task-target" placeholder="选择目标位置，或输入新目录的绝对路径" value="${esc(w.target)}"><button class="btn" data-native="pick-target">浏览</button></div><small>每次运行创建一个独立版本，不修改源文件。备份位置不能与源目录互相包含。</small></div>`;
- if(w.step===2)body=`<div class="two-fields"><div class="field"><label for="task-type">备份方式</label><select id="task-type"><option>完整备份</option></select><small>保存源目录中的全部普通文件和目录结构。</small></div><div class="field"><label for="task-schedule">执行方式</label><select id="task-schedule"><option>手动备份</option></select><small>创建后，在任务列表点击“运行”。</small></div></div><div class="option-row">${icon('shield')}<div><strong>内容校验</strong><small>复制后校验文件大小与 CRC32，检查备份内容是否完整。</small></div><span class="subtext">始终开启</span></div><div class="notice">${icon('info')}基础版任务保存原始文件；P4 打包/压缩不在本轮，加密、增量/定时、远端请使用“扩展能力”页。</div>`;
+ if(w.step===2)body=extendedOptions(w);
  if(w.step===3)body=`<div class="review">${[['任务名称',w.name],['源文件夹',w.path],['备份位置',w.target],['备份方式','完整备份'],['执行方式','手动运行'],['文件校验','大小 + CRC32']].map(([label,value])=>`<div class="review-row"><span>${label}</span><strong>${esc(value)}</strong></div>`).join('')}</div><p class="subtext">创建只保存任务配置。点击“运行”后才会读取源目录并写入备份。</p>`;
  openModal(`${modalHead('新建备份','选择源目录和目标位置。')}<div class="modal-body"><div class="steps">${['选择目录','备份选项','确认任务'].map((label,i)=>`<div class="step ${w.step===i+1?'current':''}"><b>${i+1}</b>${label}</div>`).join('')}</div>${w.error?`<div class="error" role="alert">${esc(w.error)}</div>`:''}${body}</div><div class="modal-footer"><button class="btn" data-action="${w.step===1?'close':'wizard-back'}">${w.step===1?'取消':'上一步'}</button><button class="btn primary" data-action="${w.step===3?'wizard-create':'wizard-next'}">${w.step===3?'创建任务':'下一步'}${icon('arrow')}</button></div>`)
 }
 function formatSize(n){return n>=1073741824?`${(n/1073741824).toFixed(1)} GB`:n>=1048576?`${(n/1048576).toFixed(1)} MB`:`${(n/1024).toFixed(1)} KB`}
-function readWizard(){if(!wizard)return;if(wizard.step===1){wizard.name=document.getElementById('task-name').value.trim();wizard.path=document.getElementById('task-path').value.trim();wizard.target=document.getElementById('task-target').value.trim()}if(wizard.step===2){wizard.type=document.getElementById('task-type').value;wizard.schedule=document.getElementById('task-schedule').value}}
+function readWizard(){if(!wizard)return;if(wizard.step===1){wizard.name=document.getElementById('task-name').value.trim();wizard.path=document.getElementById('task-path').value.trim();wizard.target=document.getElementById('task-target').value.trim()}if(wizard.step===2){wizard.type=document.getElementById('task-type').value;wizard.schedule=document.getElementById('task-schedule').value;readExtendedOptions(wizard)}}
 function createTask(){
  const w=wizard;
- const t={id:`task-${Date.now()}`,name:w.name,path:w.path,target:w.target,type:w.type,schedule:w.schedule,enabled:w.schedule!=='手动备份',size:w.files.length?formatSize(w.files.reduce((n,f)=>n+f.size,0)):'未读取',files:w.files.length||null,sourceScanned:w.files.length>0,time:'尚未运行',status:'ready',color:'',versions:[]};
+ const t={id:`task-${Date.now()}`,name:w.name,path:w.path,target:w.target,type:w.type,options:w.options||{},compression:w.compression,encryption:w.encryption,schedule:w.schedule,enabled:w.schedule!=='手动备份',size:w.files.length?formatSize(w.files.reduce((n,f)=>n+f.size,0)):'未读取',files:w.files.length||null,sourceScanned:w.files.length>0,time:'尚未运行',status:'ready',color:'',versions:[]};
  state.tasks.unshift(t);
  selected=t.id;
  log(`${t.name} · 已创建任务`,`源目录：${t.path} · 目标：${t.target}`);
@@ -289,7 +289,7 @@ document.addEventListener('click',e=>{
  if(action.startsWith('goto-')){navigate(action.slice(5));return}
  if(action==='new'||action==='new-schedule'){startWizard(action==='new-schedule');return}
  if(action==='pick-folder'){readWizard();document.getElementById('folder-input').click();return}
- if(action==='wizard-next'){readWizard();wizard.error='';if(wizard.step===1&&(!wizard.name||!wizard.path||!wizard.target)){wizard.error='请填写任务名称、源文件夹和备份位置。';renderWizard();return}if(wizard.step===1&&wizard.path.replace(/\/$/,'')===wizard.target.replace(/\/$/,'')){wizard.error='源文件夹与备份位置不能相同。';renderWizard();return}wizard.step++;renderWizard();return}
+ if(action==='wizard-next'){try{readWizard()}catch(error){wizard.error=error.message;renderWizard();return};wizard.error='';if(wizard.step===1&&(!wizard.name||!wizard.path||!wizard.target)){wizard.error='请填写任务名称、源文件夹和备份位置。';renderWizard();return}if(wizard.step===1&&wizard.path.replace(/\/$/,'')===wizard.target.replace(/\/$/,'')){wizard.error='源文件夹与备份位置不能相同。';renderWizard();return}wizard.step++;renderWizard();return}
  if(action==='wizard-back'){readWizard();wizard.step--;wizard.error='';renderWizard();return}
  if(action==='wizard-create'){createTask();return}
  if(action==='run'){runTask(id);return}

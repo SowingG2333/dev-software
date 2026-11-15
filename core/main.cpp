@@ -16,6 +16,10 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#endif
 
 namespace fs = std::filesystem;
 using Clock = std::chrono::steady_clock;
@@ -44,7 +48,12 @@ static std::string json(const std::string& value) {
 static bool inside(const fs::path& path, const fs::path& root) {
     auto p = path.begin();
     for (auto r = root.begin(); r != root.end(); ++r, ++p) {
-        if (p == path.end() || *p != *r) return false;
+        if (p == path.end()) return false;
+#ifdef _WIN32
+        if (CompareStringOrdinal(p->c_str(), -1, r->c_str(), -1, TRUE) != CSTR_EQUAL) return false;
+#else
+        if (*p != *r) return false;
+#endif
     }
     return true;
 }
@@ -60,6 +69,10 @@ static void noLinks(const fs::path& path) {
     for (const auto& component : path) {
         current /= component;
         require(!fs::is_symlink(fs::symlink_status(current)), "Symbolic links are not supported: " + text(current));
+#ifdef _WIN32
+        const auto attr = GetFileAttributesW(current.c_str());
+        require(attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_REPARSE_POINT), "Unsupported reparse point: " + text(current));
+#endif
     }
 }
 static std::string uniqueId() {
@@ -76,6 +89,8 @@ struct Entry {
     std::uintmax_t bytes = 0;
     std::uint32_t crc = 0;
     fs::file_time_type modified{};
+    unsigned permissions = 0;
+    std::int64_t modifiedNs = 0;
 };
 struct Manifest {
     std::string source;
@@ -83,13 +98,25 @@ struct Manifest {
     std::uintmax_t bytes = 0;
     std::size_t files = 0;
     std::size_t directories = 0;
+    bool times = false, permissions = false;
 };
+#include "policies.hpp"
 static fs::path safeRelative(const std::string& name) {
     require(!name.empty() && name.find('\0') == std::string::npos && name.find('\\') == std::string::npos,
             "Unsupported or unsafe relative path in backup.");
     fs::path path = fs::u8path(name);
     require(!path.is_absolute() && !path.has_root_name() && !path.has_root_directory(), "Absolute paths are not allowed in a backup manifest.");
-    for (const auto& part : path) require(part != ".." && part != "." && !part.empty(), "Unsafe relative path in backup.");
+    for (const auto& part : path) {
+        require(part != ".." && part != "." && !part.empty(), "Unsafe relative path in backup.");
+#ifdef _WIN32
+        auto namePart = text(part);
+        require(namePart.find_first_of(":<>\"|?*") == std::string::npos && namePart.back() != '.' && namePart.back() != ' ', "Unsafe Windows path.");
+        for (auto& c : namePart) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+        namePart = namePart.substr(0, namePart.find('.'));
+        require(namePart != "CON" && namePart != "PRN" && namePart != "AUX" && namePart != "NUL" &&
+                !(namePart.size() == 4 && (namePart.substr(0, 3) == "COM" || namePart.substr(0, 3) == "LPT") && namePart[3] >= '1' && namePart[3] <= '9'), "Reserved Windows path.");
+#endif
+    }
     return path;
 }
 static void progress(const std::string& phase, std::uintmax_t bytes, std::uintmax_t totalBytes,
@@ -99,12 +126,18 @@ static void progress(const std::string& phase, std::uintmax_t bytes, std::uintma
               << ",\"files\":" << files << ",\"totalFiles\":" << totalFiles
               << ",\"path\":" << json(path) << "}" << std::endl;
 }
-static Manifest scan(const fs::path& source) {
+static Manifest scan(const fs::path& source, bool filtered = true) {
     Manifest manifest;
     manifest.source = text(source);
+    manifest.times = policy.times; manifest.permissions = policy.permissions;
     progress("scanning", 0, 0, 0, 0);
     for (const auto& item : fs::recursive_directory_iterator(source)) {
+        cancelled();
+        supportedType(item.path());
         Entry entry;
+        entry.modified = item.last_write_time();
+        entry.modifiedNs = modificationNs(item.path());
+        entry.permissions = static_cast<unsigned>(item.status().permissions());
         entry.relative = safeRelative(text(item.path().lexically_relative(source)));
         const auto status = item.symlink_status();
         require(!fs::is_symlink(status), "Symbolic links are not supported in the basic demo: " + text(item.path()));
@@ -121,6 +154,7 @@ static Manifest scan(const fs::path& source) {
         manifest.entries.push_back(entry);
         require(manifest.entries.size() <= 200000, "Basic demo supports at most 200,000 entries per backup.");
     }
+    if (filtered) filterManifest(source, manifest);
     std::sort(manifest.entries.begin(), manifest.entries.end(), [](const Entry& a, const Entry& b) {
         if (a.directory != b.directory) return a.directory > b.directory;
         return text(a.relative) < text(b.relative);
@@ -150,6 +184,7 @@ static std::pair<std::uintmax_t, std::uint32_t> checksum(const fs::path& path) {
     std::uintmax_t bytes = 0;
     std::uint32_t crc = 0xffffffffU;
     while (in) {
+        cancelled();
         in.read(buffer.data(), buffer.size());
         const auto count = in.gcount();
         crc = crcUpdate(crc, buffer.data(), static_cast<std::size_t>(count));
@@ -171,6 +206,7 @@ static std::uint32_t copyChecked(const fs::path& source, const fs::path& destina
     std::uintmax_t bytes = 0;
     auto last = Clock::now();
     while (in) {
+        cancelled();
         in.read(buffer.data(), buffer.size());
         const auto count = in.gcount();
         out.write(buffer.data(), count);
@@ -195,9 +231,11 @@ static std::uint32_t copyChecked(const fs::path& source, const fs::path& destina
 static void writeManifest(const fs::path& path, const Manifest& manifest) {
     std::ofstream out(path, std::ios::binary);
     require(bool(out), "Cannot create backup manifest.");
-    out << "BACKNEST 1\n" << manifest.files << ' ' << manifest.directories << ' ' << manifest.bytes << '\n'
+    out << "BACKNEST " << ((manifest.times || manifest.permissions) ? 2 : 1) << "\n" << manifest.files << ' ' << manifest.directories << ' ' << manifest.bytes << '\n'
         << std::quoted(manifest.source) << '\n';
+    if (manifest.times || manifest.permissions) out << manifest.times << ' ' << manifest.permissions << '\n';
     for (const auto& entry : manifest.entries) {
+        if (manifest.times || manifest.permissions) out << entry.modifiedNs << ' ' << (entry.permissions & 0777) << ' ' ;
         if (entry.directory) out << "D " << std::quoted(text(entry.relative)) << '\n';
         else out << "F " << entry.bytes << ' ' << entry.crc << ' ' << std::quoted(text(entry.relative)) << '\n';
     }
@@ -215,9 +253,10 @@ static Manifest readManifest(const fs::path& snapshot) {
     int version = 0;
     Manifest manifest;
     in >> magic >> version >> manifest.files >> manifest.directories >> manifest.bytes >> std::quoted(manifest.source);
-    require(bool(in) && magic == "BACKNEST" && version == 1, "Invalid or unsupported backup manifest.");
+    require(bool(in) && magic == "BACKNEST" && (version == 1 || version == 2), "Invalid or unsupported backup manifest.");
     require(manifest.files <= 200000 && manifest.directories <= 200000 && manifest.files + manifest.directories <= 200000,
             "Backup contains too many entries.");
+    if (version == 2) { in >> manifest.times >> manifest.permissions; require(bool(in), "Invalid metadata flags."); }
     std::map<std::string, bool> paths;
     std::size_t files = 0, directories = 0;
     std::uintmax_t bytes = 0;
@@ -225,6 +264,10 @@ static Manifest readManifest(const fs::path& snapshot) {
         char type = 0;
         std::string name;
         Entry entry;
+        if (version == 2) {
+            in >> entry.modifiedNs >> entry.permissions;
+            require(bool(in) && entry.permissions <= 0777, "Invalid metadata record.");
+        }
         in >> type;
         require(type == 'D' || type == 'F', "Invalid entry type in backup manifest.");
         entry.directory = type == 'D';
@@ -286,6 +329,16 @@ static void result(const fs::path& path, const Manifest& manifest, const std::st
               << ",\"files\":" << manifest.files << ",\"directories\":" << manifest.directories
               << ",\"bytes\":" << manifest.bytes << ",\"verified\":true}" << std::endl;
 }
+#include "container.hpp"
+
+static void applyMetadata(const fs::path& root, const Manifest& manifest) {
+    for (auto i = manifest.entries.rbegin(); i != manifest.entries.rend(); ++i) {
+        cancelled();
+        if (manifest.times) setModificationNs(root / i->relative, i->modifiedNs);
+        if (manifest.permissions) fs::permissions(root / i->relative, static_cast<fs::perms>(i->permissions));
+    }
+}
+
 static void backup(const fs::path& sourceArg, const fs::path& rootArg) {
     noLinks(sourceArg);
     noLinks(rootArg);
@@ -325,8 +378,21 @@ static void backup(const fs::path& sourceArg, const fs::path& rootArg) {
         }
         writeManifest(stage / "manifest.bkn", manifest);
         verify(stage);
-        fs::rename(stage, final);
-        result(final, manifest, "backup");
+        if (policy.archive || policy.compress) {
+            const auto packed = root / (".partial-" + id + ".bka");
+            try {
+                packArchive(stage, packed);
+                commit();
+                const auto archive = root / ("snapshot-" + id + ".bka");
+                fs::rename(packed, archive);
+                fs::remove_all(stage);
+                result(archive, manifest, "backup");
+            } catch (...) { std::error_code ec; fs::remove(packed, ec); throw; }
+        } else {
+            commit();
+            fs::rename(stage, final);
+            result(final, manifest, "backup");
+        }
     } catch (...) {
         std::error_code ignored;
         fs::remove_all(stage, ignored);
@@ -340,6 +406,12 @@ static void restore(const fs::path& snapshotArg, const fs::path& targetArg) {
     disjoint(snapshot, target);
     require(!fs::exists(target) || (fs::is_directory(target) && fs::is_empty(target)),
             "Restore destination must be a new or empty directory. Existing files will not be overwritten.");
+    if (fs::is_regular_file(snapshot)) {
+        const auto temp = fs::temp_directory_path() / ("backnest-unpack-" + uniqueId());
+        try { unpackArchive(snapshot, temp); restore(temp, target); fs::remove_all(temp); }
+        catch (...) { std::error_code ec; fs::remove_all(temp, ec); throw; }
+        return;
+    }
     auto manifest = verify(snapshot); // Validate all contents before creating output.
     fs::create_directories(target.parent_path());
     const auto stage = target.parent_path() / (".backnest-restore-" + uniqueId());
@@ -362,6 +434,8 @@ static void restore(const fs::path& snapshotArg, const fs::path& targetArg) {
                 progress("copying", processed, manifest.bytes, ++done, manifest.files, text(entry.relative));
             }
         }
+        applyMetadata(stage, manifest);
+        commit();
         noLinks(targetArg);
         if (fs::exists(target)) {
             require(fs::is_directory(target) && fs::is_empty(target), "Restore destination changed; no existing files were overwritten.");
@@ -379,11 +453,18 @@ static void restore(const fs::path& snapshotArg, const fs::path& targetArg) {
 }
 static int run(const std::vector<fs::path>& args) {
     try {
+        loadPolicies();
+        cancelled();
+        if (extendedCommand(args)) return 0;
         if (args.size() == 4 && args[1] == "backup") backup(args[2], args[3]);
         else if (args.size() == 4 && args[1] == "restore") restore(args[2], args[3]);
         else if (args.size() == 3 && args[1] == "verify") {
             const auto snapshot = resolvedAbsolute(args[2]);
-            result(snapshot, verify(snapshot), "verify");
+            if (fs::is_regular_file(snapshot)) {
+                const auto temp = fs::temp_directory_path() / ("backnest-verify-" + uniqueId());
+                try { unpackArchive(snapshot, temp); const auto verified = verify(temp); commit(); result(snapshot, verified, "verify"); fs::remove_all(temp); }
+                catch (...) { std::error_code ec; fs::remove_all(temp, ec); throw; }
+            } else { const auto verified = verify(snapshot); commit(); result(snapshot, verified, "verify"); }
         } else {
             std::cerr << "Usage:\n  backnest backup <absolute-source-directory> <absolute-backup-root>\n"
                          "  backnest restore <absolute-snapshot-directory> <absolute-new-or-empty-directory>\n"

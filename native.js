@@ -1,5 +1,6 @@
 /* Same-origin bridge to the local C++ process; no simulated progress or results. */
 'use strict';
+let activeNativeJob=null;
 let nativeSession=null, nativeBusy=false, pickerContext=null, backendApi=null;
 
 function engineMessage(message){
@@ -36,26 +37,36 @@ async function connectNative(){
   if(!response.ok)return;
   const session=await response.json();
   if(!['C++17','Python'].includes(session.engine))return;
-  const port=new BackNestBackend({token:session.token});
+  const transport=await connectQtTransport();
+  const port=new BackNestBackend({token:session.token,transport});
   const capabilities=await port.invoke('system.capabilities');
-  backendApi=port;nativeSession={...session,capabilities};
+  backendApi=port;nativeSession={...session,capabilities,desktop:!!transport};
+  let revision=0;
+  state=await workspaceStore.attach({
+   async load(){const saved=await port.invoke('workspace.load');revision=saved.revision;if(saved.state)return saved.state;
+    const created=await port.invoke('workspace.save',{body:{state,revision}});revision=created.revision;return created.state},
+   async save(value){const saved=await port.invoke('workspace.save',{body:{state:value,revision}});revision=saved.revision}
+  });
   render();
   const pending=state.tasks.find(task=>task.activeJob);
   if(pending){
    nativeBusy=true;
    try{await completeBackupJob(pending,pending.activeJob)}finally{nativeBusy=false;render()}
   }
- }catch{/* Static UI can still open; native actions explain how to start the engine. */}
+ }catch(error){toast('连接或加载工作区失败：'+error.message)}
 }
 function localTime(iso){return new Date(iso||Date.now()).toLocaleString('zh-CN',{hour12:false})}
 async function pollNativeJob(id,onProgress){
+ activeNativeJob=id;
+ try{
  for(;;){
   const job=await nativeRequest('jobs.get',{path:{jobId:id}});
-  if(job.state==='failed')throw Error(engineMessage(job.error||'文件操作失败。'));
+  if(job.state==='failed'||job.state==='cancelled')throw Error(engineMessage(job.error||'文件操作失败。'));
   if(job.state==='completed')return job.result;
   onProgress?.(job);
   await new Promise(resolve=>setTimeout(resolve,250));
  }
+ }finally{if(activeNativeJob===id)activeNativeJob=null}
 }
 async function completeBackupJob(task,jobId){
  try{
@@ -84,7 +95,7 @@ async function performBackup(id){
  if(task.type!=='完整备份'){toast('基础版任务仅支持完整备份；加密、增量、远端请使用扩展能力页。');return}
  nativeBusy=true;render();
  try{
-  const job=await nativeRequest('backup.start',{body:{source:task.path,destination:task.target}});
+  const job=await nativeRequest('backup.start',{body:{source:task.path,destination:task.target,options:task.options||{}}});
   task.activeJob=job.id;task.status='running';delete task.lastError;persist();
   await completeBackupJob(task,job.id);
  }catch(error){toast(error.message)}finally{nativeBusy=false;render()}
@@ -159,6 +170,8 @@ document.addEventListener('click',event=>{
  const control=event.target.closest('[data-native]');if(!control)return;
  event.stopImmediatePropagation();
  const {native:action,id,index,path}=control.dataset;
+ if(action==='preview')previewWizard();
+ if(action==='cancel')cancelActiveJob();
  if(action==='pick-source')openDirectoryPicker('source');
  if(action==='pick-target')openDirectoryPicker('target');
  if(action==='pick-restore')openDirectoryPicker('restore',id,Number(index));

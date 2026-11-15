@@ -1,6 +1,10 @@
+> 整合说明：server.py 以 P5–P7 为主，native_service.py 接入原生 P2–P4；上游 backnest/ 实现保持不变。接口由 api_contract.py 统一生成。
+
+> 当前状态（2026-11-15）：本文下方保留并更新上游 P5–P7 交接设计，涉及“未实现”的历史描述以当前 README、VALIDATION、FORMAT 和生成的 REQUIREMENTS_AUDIT 为准。P2–P4 已增加 SQLite、Qt 适配、取消、筛选、容器及 RLE。Windows Qt 功能链路已用脚本验证；按用户要求，macOS 不在此次验收范围。
+
 # 后端开发交接文档
 
-更新日期：2026-11-08。本文面向接手 C++ 引擎、Qt 桌面层或后端服务的开发者。本轮范围是 **P5 加密、P6 自动化与增量、P7 网络**；P4 打包/压缩不在本轮中。
+更新日期：2026-11-08。本文面向接手 C++ 引擎、Qt 桌面层或后端服务的开发者。保留 **P5 加密、P6 自动化与增量、P7 网络**，整合原生 P2–P4。
 
 ## 1. 实现约束
 
@@ -9,7 +13,7 @@
 | 目录备份/还原/校验 | 项目代码实现流程、清单、CRC32 | `core/main.cpp`、`backnest/engine.py` |
 | 加密/解密/密码派生 | **允许成熟密码学库**，不要手写密码算法 | `backnest/crypto.py`：Windows CNG；macOS/Linux `cryptography` |
 | 定时、增量、实时、远端传输 | 项目代码实现规则、调度、续传与校验 | `backnest/scheduler.py`、`watcher.py`、`remote.py`、`remote_server.py` |
-| P4 打包/压缩 | 本轮不做 | `archive.*`、`compression.*` 保持 501 |
+| P4 打包/压缩 | 自实现 BKNARC2 / RLE | 打包/解包/压缩/解压已接通，archive.list 仍为 501 |
 
 禁止把 demo 桥直接暴露到公网；P7 使用独立 HTTPS 服务。
 
@@ -28,13 +32,13 @@
 
 ### 尚未实现
 
-P4 打包/压缩、六维筛选、元数据/特殊文件保真、Qt 桌面、系统服务式定时、可靠取消、完整角色 ACL 管理界面。
+完整元数据/特殊文件保真、系统服务式定时、Python 扩展任务中途取消、完整角色 ACL 管理界面。
 
 ## 3. 需求到接口
 
 完整机器生成表见 [REQUIREMENTS_AUDIT.md](REQUIREMENTS_AUDIT.md)。
 
-当前 **63 个 operationId：50 个接通、13 个预留**。以 `api_contract.py` 为唯一事实来源；改协议先改注册表再生成。
+当前 **65 个 operationId：62 个接通、3 个预留**。以 `api_contract.py` 为唯一事实来源；改协议先改注册表再生成。
 
 | 文件 | 责任 |
 | --- | --- |
@@ -69,15 +73,15 @@ P4 打包/压缩、六维筛选、元数据/特殊文件保真、Qt 桌面、系
 | P6 | `incremental.preview`、`schedules.*`、`watchers.*`、`tasks.*`、`settings.*`、`snapshots.*`、`activity.*`、`workspace.overview` |
 | P7 | `remotes.list/create/update/delete/test/upload/download`、`remoteCatalog.list/register/get/delete`、`users.list/create/update/delete`、`auth.login/logout` |
 
-其余 13 个（P4、filters、metadata、fileTypes、jobs.cancel）返回 501。
+metadata.read、metadata.apply 和 archive.list 返回 501。原生筛选、编解码及取消已接通。
 
 ### 4.2 异步与错误
 
 - `202` 只表示任务已接收，客户端轮询 `jobs.get`。
-- 终态 `completed`/`failed`；`cancelled` 枚举保留，取消未实现。
+- 终态 `completed`/`failed`/`cancelled`；原生任务支持协作取消，Python 扩展任务拒绝取消。
 - 进度字段：`phase/files/totalFiles/bytes/totalBytes/path`。
 - 400 参数错误；403 鉴权/来源；404 资源不存在；405 方法错误；501 预留/不支持；并发忙目前 400。
-- 不静默忽略参数：`backup.start` 的 filters/metadata/archive/compression/encryption 选项、`restore.start` 的非空目标等仍返回 501。
+- 不静默忽略参数：原生完整备份支持筛选、有限元数据、容器与压缩；增量/Python/自动化不接受这些组合。加密使用独立接口。非空还原目标仍拒绝。
 
 ### 4.3 P5 secretRef
 
@@ -124,8 +128,8 @@ python scripts/remote_server.py --state .backnest/remote --port 4780 \
 - 定时只在进程存活时执行；实时监听是轮询。
 - P7 简单远端：无配额、带宽限制、角色 ACL 界面；token 内存保存，重启后重新登录。
 - 远端用户与主服务 `users.*` 是两套账户；远端用户用 `--add-user` 创建。
-- 不支持符号链接、特殊文件、完整元数据、六维筛选、Qt 桌面。
-- 还原只接受新/空目录；job 重启不可恢复。
+- 不支持符号链接、特殊文件和完整元数据保真。
+- 还原只接受新/空目录；job 历史重启保留，未完成任务标记中断失败（不会自动续跑）。
 
 ## 7. 开发与验收
 

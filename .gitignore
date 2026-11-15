@@ -11,3 +11,4 @@ build-cmake/
 .env.*
 !.env.example
 .venv/
+aqtinstall.log

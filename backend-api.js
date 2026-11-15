@@ -46,13 +46,13 @@ const BACKEND_OPERATIONS = {
   "jobs.cancel": {
     "method": "POST",
     "path": "/api/v1/jobs/{jobId}/cancel",
-    "implemented": false,
+    "implemented": true,
     "requirement": "gui"
   },
   "fileTypes.inspect": {
     "method": "POST",
     "path": "/api/v1/filesystem/types/inspect",
-    "implemented": false,
+    "implemented": true,
     "requirement": "file_types"
   },
   "metadata.read": {
@@ -70,25 +70,25 @@ const BACKEND_OPERATIONS = {
   "filters.preview": {
     "method": "POST",
     "path": "/api/v1/filters/preview",
-    "implemented": false,
+    "implemented": true,
     "requirement": "custom_backup"
   },
   "filters.validate": {
     "method": "POST",
     "path": "/api/v1/filters/validate",
-    "implemented": false,
+    "implemented": true,
     "requirement": "custom_backup"
   },
   "archive.algorithms": {
     "method": "GET",
     "path": "/api/v1/archive/algorithms",
-    "implemented": false,
+    "implemented": true,
     "requirement": "archive"
   },
   "compression.algorithms": {
     "method": "GET",
     "path": "/api/v1/compression/algorithms",
-    "implemented": false,
+    "implemented": true,
     "requirement": "compression"
   },
   "encryption.algorithms": {
@@ -100,25 +100,25 @@ const BACKEND_OPERATIONS = {
   "archive.pack": {
     "method": "POST",
     "path": "/api/v1/archive/pack",
-    "implemented": false,
+    "implemented": true,
     "requirement": "archive"
   },
   "archive.unpack": {
     "method": "POST",
     "path": "/api/v1/archive/unpack",
-    "implemented": false,
+    "implemented": true,
     "requirement": "archive"
   },
   "compression.compress": {
     "method": "POST",
     "path": "/api/v1/compression/compress",
-    "implemented": false,
+    "implemented": true,
     "requirement": "compression"
   },
   "compression.decompress": {
     "method": "POST",
     "path": "/api/v1/compression/decompress",
-    "implemented": false,
+    "implemented": true,
     "requirement": "compression"
   },
   "encryption.encrypt": {
@@ -378,6 +378,18 @@ const BACKEND_OPERATIONS = {
     "path": "/api/v1/incremental/preview",
     "implemented": true,
     "requirement": "other"
+  },
+  "workspace.load": {
+    "method": "GET",
+    "path": "/api/v1/workspace/state",
+    "implemented": true,
+    "requirement": "gui"
+  },
+  "workspace.save": {
+    "method": "POST",
+    "path": "/api/v1/workspace/state",
+    "implemented": true,
+    "requirement": "gui"
   }
 };
 class BackNestBackend {

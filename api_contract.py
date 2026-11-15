@@ -223,6 +223,26 @@ for operation in OPERATIONS:
         operation["request"] = "CryptoRequest"
 
 
+# P2-P4 additions to the P5-P7 contract.
+SCHEMAS['Job']['properties']['cancelRequested'] = {'type': 'boolean'}
+SCHEMAS['WorkspaceState'] = obj({'schemaVersion': {'type': 'integer'}, 'tasks': {'type': 'array', 'items': {'type': 'object'}},
+    'logs': {'type': 'array', 'items': {'type': 'object'}}, 'settings': {'type': 'object'}}, ['tasks', 'logs', 'settings'])
+SCHEMAS['WorkspaceEnvelope'] = obj({'revision': {'type': 'integer', 'minimum': 0}, 'state': {}}, ['revision', 'state'])
+SCHEMAS['WorkspaceSave'] = obj({'revision': {'type': 'integer', 'minimum': 0}, 'state': ref('WorkspaceState')}, ['revision', 'state'])
+add('workspace.load', 'GET', '/workspace/state', 'gui', '读取后端工作区', response='WorkspaceEnvelope', implemented=True)
+add('workspace.save', 'POST', '/workspace/state', 'gui', '事务保存后端工作区', 'WorkspaceSave', response='WorkspaceEnvelope', implemented=True)
+for operation in OPERATIONS:
+    if operation['id'] in {'jobs.cancel', 'filters.preview', 'filters.validate', 'fileTypes.inspect',
+                           'archive.algorithms', 'compression.algorithms', 'archive.pack', 'archive.unpack',
+                           'compression.compress', 'compression.decompress'}:
+        operation['implemented'] = True
+for requirement in REQUIREMENTS:
+    if requirement['id'] in ('archive', 'compression', 'custom_backup'):
+        requirement['status'] = 'implemented'
+    if requirement['id'] == 'metadata': requirement['status'] = 'mtime_basic_permissions_only'
+    if requirement['id'] == 'gui': requirement['status'] = 'web_and_qt_adapter_backend_persistence'
+
+
 def match_operation(method, path):
     for operation in OPERATIONS:
         pattern = "/".join("([^/]+)" if part.startswith("{") and part.endswith("}") else re.escape(part)
@@ -236,7 +256,7 @@ def match_operation(method, path):
 
 def capabilities():
     return {"apiVersion": VERSION, "operations": copy.deepcopy(OPERATIONS), "requirements": copy.deepcopy(REQUIREMENTS),
-            "algorithms": {"archive": [], "compression": [],
+            "algorithms": {"archive": ["bkn-container-v2"], "compression": ["rle-block-v1"],
                            "encryption": copy.deepcopy(_crypto.ALGORITHMS),
                            "integrity": ["crc32-self-implemented"]},
             "algorithmPolicy": {"archive": "self_implemented_only", "compression": "self_implemented_only", "encryption": "libraries_allowed"},
@@ -245,7 +265,7 @@ def capabilities():
                            "incremental": "hardlink_or_copy", "runs_after_process_exit": False},
             "remote": {"transport": "https", "userIsolation": True, "resumable": True,
                        "integrity": "sha256", "tls": "system-or-caFile"},
-            "persistence": "browser_local_and_backend_json_for_automation",
+            "persistence": "sqlite_workspace_and_backend_json_for_automation",
             "platforms": {"macOS": "engine_entry_only_not_retested", "Windows": "tested_python_engine_and_features"}}
 
 
@@ -289,11 +309,9 @@ def unsupported_option(operation_id, body):
     """Never silently accept an unsupported policy and then run a plain backup."""
     if operation_id == "backup.start":
         options = body.get("options", {})
-        checks = [("filters", "filters.preview"), ("metadata", "metadata.apply"), ("archive", "archive.pack"),
-                  ("compression", "compression.compress"), ("encryption", "encryption.encrypt")]
-        for key, capability in checks:
-            if options.get(key):
-                return capability
+        if options.get('encryption'): return 'encryption.encrypt'
+        if options.get('metadata', {}).get('preserve') and any(k not in ('times', 'permissions') for k in options['metadata']['preserve']):
+            return 'metadata.apply'
         policy = options.get("fileTypes", {})
         if any(value != {"symlinks": "reject", "hardlinks": "copy_contents", "specialFiles": "reject"}.get(key) for key, value in policy.items()):
             return "fileTypes.inspect"

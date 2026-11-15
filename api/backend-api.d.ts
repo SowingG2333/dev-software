@@ -1,7 +1,7 @@
 // Generated. Wire DTOs; credentials/secretRef must never enter persistent UI state.
 export type Error = { "error": string; "code": string; "operationId"?: string; "capability"?: string; "retryable"?: boolean };
 export type JobAccepted = { "id": string };
-export type Job = { "id": string; "operation": string; "state": "running" | "completed" | "failed" | "cancelled"; "phase"?: string; "files"?: number; "totalFiles"?: number; "bytes"?: number; "totalBytes"?: number; "path"?: string; "result"?: OperationResult; "error"?: string };
+export type Job = { "id": string; "operation": string; "state": "running" | "completed" | "failed" | "cancelled"; "phase"?: string; "files"?: number; "totalFiles"?: number; "bytes"?: number; "totalBytes"?: number; "path"?: string; "result"?: OperationResult; "error"?: string; "cancelRequested"?: boolean };
 export type OperationResult = { "operation": string; "path": string; "source"?: string; "files": number; "directories": number; "bytes": number; "verified": boolean; "completedAt": string };
 export type FilterSpec = { "paths"?: { "include"?: Array<string>; "exclude"?: Array<string> }; "types"?: Array<string>; "names"?: Array<string>; "time"?: { "field": "modified" | "created" | "accessed"; "from"?: string; "to"?: string }; "size"?: { "minBytes"?: number; "maxBytes"?: number }; "users"?: Array<OwnerSelector> };
 export type OwnerSelector = { "platform": "posix" | "windows"; "id": string; "displayName"?: string };
@@ -61,6 +61,9 @@ export type SnapshotRecordList = Array<SnapshotRecord>;
 export type UserRecordList = Array<UserRecord>;
 export type ActivityRecordList = Array<ActivityRecord>;
 export type NextRuns = Array<string>;
+export type WorkspaceState = { "schemaVersion"?: number; "tasks": Array<Record<string, unknown>>; "logs": Array<Record<string, unknown>>; "settings": Record<string, unknown> };
+export type WorkspaceEnvelope = { "revision": number; "state": unknown };
+export type WorkspaceSave = { "revision": number; "state": WorkspaceState };
 export interface BackendOperations {
   "system.capabilities": { request: undefined; response: Capabilities };
   "system.contract": { request: undefined; response: Contract };
@@ -125,6 +128,8 @@ export interface BackendOperations {
   "activity.export": { request: undefined; response: ActivityExport };
   "workspace.overview": { request: undefined; response: Overview };
   "incremental.preview": { request: BackupRequest; response: IncrementalPreview };
+  "workspace.load": { request: undefined; response: WorkspaceEnvelope };
+  "workspace.save": { request: WorkspaceSave; response: WorkspaceEnvelope };
 }
 export interface BackendCallOptions { path?: Record<string,string>; query?: Record<string,string|number|boolean>; body?: unknown; }
 export interface BackendTransport { (operationId:keyof BackendOperations, args:BackendCallOptions):Promise<unknown>; }

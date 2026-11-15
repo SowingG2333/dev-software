@@ -99,8 +99,8 @@ class ContractTests(unittest.TestCase):
         code, result = self.request("GET", "/api/v1/capabilities")
         self.assertEqual(code, 200)
         self.assertEqual(result["operations"], OPERATIONS)
-        self.assertEqual(result["algorithms"]["compression"], [])
-        self.assertEqual(result["algorithms"]["archive"], [])
+        self.assertEqual(result["algorithms"]["compression"], ["rle-block-v1"])
+        self.assertEqual(result["algorithms"]["archive"], ["bkn-container-v2"])
         self.assertTrue(result["algorithms"]["encryption"])
         self.assertFalse(result["algorithms"]["encryption"][0]["selfImplemented"])
         self.assertEqual(result["algorithmPolicy"]["compression"], "self_implemented_only")
@@ -115,12 +115,12 @@ class ContractTests(unittest.TestCase):
             source.mkdir()
             for options in [{"compression": {"algorithm": "huffman-v1"}},
                             {"archive": {"algorithm": "bkn-container-v1"}}, {"encryption": {"algorithm": "aes-gcm", "secretRef": "temporary"}},
-                            {"filters": {"names": ["*.txt"]}}, {"metadata": {"preserve": ["owner"]}},
+                            {"metadata": {"preserve": ["owner"]}},
                             {"fileTypes": {"symlinks": "preserve"}}]:
                 for path in ["/api/v1/backups", "/api/backup"]:
                     with self.subTest(options=options, path=path):
                         code, result = self.request("POST", path, {"source": str(source), "destination": str(root / "backup"), "options": options})
-                        self.assertEqual(code, 501, result)
+                        self.assertEqual(code, 400 if "compression" in options or "archive" in options else 501, result)
                         self.assertFalse((root / "backup").exists())
             code, _ = self.request("POST", "/api/v1/restores", {"snapshot": str(root / "snapshot"), "destination": str(root / "out"), "conflictPolicy": "overwrite"})
             self.assertEqual(code, 501)

@@ -21,6 +21,10 @@ import shutil
 import subprocess
 import sys
 import threading
+import tempfile
+from repository import Repository
+from native_options import native_options
+from native_service import NativeFeatures
 import time
 from urllib.parse import parse_qs, urlsplit
 import uuid
@@ -36,7 +40,7 @@ from backnest.watcher import WatcherError, WatcherManager
 sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
 from build import build, ROOT  # noqa: E402
 
-STATIC_FILES = {"index.html", "app.js", "state.js", "native.js", "styles.css", "backend-api.js", "workspace-store.js"}
+STATIC_FILES = {"index.html", "app.js", "state.js", "native.js", "styles.css", "backend-api.js", "workspace-store.js", "features.js", "desktop-transport.js"}
 MAX_JOBS = 100
 
 
@@ -59,7 +63,7 @@ def _verify_password(password: str, record: dict) -> bool:
         return False
 
 
-class DemoServer(ThreadingHTTPServer):
+class DemoServer(NativeFeatures, ThreadingHTTPServer):
     daemon_threads = True
 
     def __init__(self, port, state_dir=None):
@@ -71,14 +75,20 @@ class DemoServer(ThreadingHTTPServer):
             self.build_error = str(error)
         self.engine_name = "C++17" if self.binary else "Python"
         self.force_python = bool(os.environ.get("BACKNEST_FORCE_PYTHON"))
-        self.state_dir = Path(state_dir) if state_dir else ROOT / ".backnest"
+        self.temporary_data = tempfile.TemporaryDirectory(prefix='backnest-service-') if port == 0 and state_dir is None else None
+        self.state_dir = Path(state_dir or (self.temporary_data.name if self.temporary_data else ROOT / '.backnest'))
+        self.repository = Repository(self.state_dir)
+        self.controls = self.repository.directory / 'controls'
+        self.controls.mkdir(exist_ok=True)
+        self.workers = []
+        self.native_jobs = set()
         self.store = Store(self.state_dir / "backend.json")
         self.secrets = SecretStore()
         self.remote_credentials = {}
         self.sessions = {}
         self.sessions_lock = threading.Lock()
         self.token = secrets.token_urlsafe(32)
-        self.jobs = {}
+        self.jobs = self.repository.recover_jobs()
         self.jobs_lock = threading.Lock()
         self.engine_lock = threading.Lock()
         self._closing = False
@@ -95,6 +105,7 @@ class DemoServer(ThreadingHTTPServer):
                 "id": job_id, "operation": operation, "state": "running", "phase": "starting",
                 "files": 0, "totalFiles": 0, "bytes": 0, "totalBytes": 0, "path": "",
             }
+        self.repository.save_job(self.jobs[job_id])
         return job_id
 
     def _update_job(self, job_id, **fields):
@@ -102,6 +113,7 @@ class DemoServer(ThreadingHTTPServer):
             job = self.jobs.get(job_id)
             if job:
                 job.update(fields)
+                if job["state"] != "running": self.repository.save_job(job)
 
     def _retain_jobs(self):
         with self.jobs_lock:
@@ -146,71 +158,14 @@ class DemoServer(ThreadingHTTPServer):
                         pass
             self._retain_jobs()
 
-        threading.Thread(target=work, name="backnest-job-" + job_id, daemon=True).start()
+        worker = threading.Thread(target=work, name="backnest-job-" + job_id, daemon=True)
+        self.workers.append(worker)
+        worker.start()
         return job_id
 
-    def start_native_job(self, operation, arguments, *, on_success=None, on_failure=None, task_id=""):
-        if not self.binary:
-            raise ValueError("C++ 引擎未构建，无法执行本机操作。")
-        if not self.engine_lock.acquire(blocking=False):
-            raise ValueError("已有备份或文件操作正在运行，请等待完成。")
-        job_id = self._new_job(operation, task_id)
-        threading.Thread(target=self._run_native_job,
-                         args=(job_id, operation, arguments, on_success, on_failure, task_id),
-                         name="backnest-native-" + job_id, daemon=True).start()
-        return job_id
-
-    def _run_native_job(self, job_id, operation, arguments, on_success, on_failure, task_id):
-        process = None
-        result = None
-        failure = None
-        try:
-            process = subprocess.Popen([str(self.binary), operation] + arguments, stdout=subprocess.PIPE,
-                                       stderr=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace")
-            for line in process.stdout:
-                try:
-                    event = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if event.get("event") == "progress":
-                    self._update_job(job_id, **{k: v for k, v in event.items() if k != "event"})
-                elif event.get("event") == "result":
-                    result = {k: v for k, v in event.items() if k != "event"}
-                elif event.get("event") == "error":
-                    failure = event.get("message", "本机引擎执行失败。")
-            code = process.wait()
-            if code or failure or not result:
-                raise RuntimeError(failure or "本机引擎未返回成功结果。")
-            result["completedAt"] = now_iso()
-            if on_success:
-                try:
-                    on_success(result, job_id, task_id)
-                except Exception as error:
-                    self.store.add_activity(title="结果登记失败", detail=str(error), level="warning", task_id=task_id)
-        except Exception as error:
-            failure = str(error) or error.__class__.__name__
-            if process and process.poll() is None:
-                process.terminate()
-                try:
-                    process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-        finally:
-            if process and process.stdout:
-                process.stdout.close()
-            # Release before exposing a terminal state (see start_python_job).
-            self.engine_lock.release()
-        if failure is None and result is not None:
-            self._update_job(job_id, state="completed", phase="completed", result=result)
-        else:
-            message = failure or "本机引擎未返回成功结果。"
-            self._update_job(job_id, state="failed", error=message)
-            if on_failure:
-                try:
-                    on_failure(message, job_id, task_id)
-                except Exception:
-                    pass
-        self._retain_jobs()
+    def start_native_job(self, operation, arguments, *, options=None, on_success=None, on_failure=None, task_id=""):
+        return self.start_job(operation, arguments, options, on_success=on_success,
+                              on_failure=on_failure, task_id=task_id)
 
     # ------------------------------------------------------------- automation
     def _register_snapshot(self, result, task_id="", remote_id=""):
@@ -295,6 +250,9 @@ class DemoServer(ThreadingHTTPServer):
             self.store.add_activity(title="自动备份跳过", detail="任务不存在或已删除。", level="warning", task_id=task_id)
             return False
         options = task.get("options") or {}
+        if any(options.get(key) for key in ('filters', 'metadata', 'archive', 'compression', 'encryption', 'fileTypes')):
+            self._task_failure('自动任务包含当前引擎不支持的选项，未执行备份。', '', task_id)
+            return False
         incremental = reason.startswith("watch") or options.get("mode", "full") == "incremental"
         source = Path(task["source"]).expanduser()
         destination = Path(task["destination"]).expanduser()
@@ -323,7 +281,13 @@ class DemoServer(ThreadingHTTPServer):
             self.watchers.stop_all()
         finally:
             self.scheduler.stop()
+            for job_id in list(self.native_jobs):
+                try: self.cancel_job(job_id)
+                except ValueError: pass
+            for worker in self.workers: worker.join()
             super().server_close()
+            self.repository.close()
+            if self.temporary_data: self.temporary_data.cleanup()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -334,6 +298,20 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def send_data(self, status, data, content_type="application/json; charset=utf-8"):
+        # Consume a bounded rejected request body before closing the connection.
+        # Otherwise Windows can reset the socket and discard the 4xx/501 response.
+        if not getattr(self, '_body_consumed', False):
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+            except ValueError:
+                length = 0
+            if 0 < length <= 65536:
+                self.connection.settimeout(5)
+                try:
+                    self.rfile.read(length)
+                except (OSError, TimeoutError):
+                    pass
+            self._body_consumed = True
         if isinstance(data, (dict, list)):
             data = json.dumps(data, ensure_ascii=False).encode("utf-8")
         elif isinstance(data, str):
@@ -344,7 +322,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
-        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' qrc:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
         self.end_headers()
         self.wfile.write(data)
 
@@ -383,8 +361,9 @@ class Handler(BaseHTTPRequestHandler):
             return {}
         if self.headers.get("Content-Type", "").split(";", 1)[0] != "application/json":
             raise ValueError("请求必须使用 JSON。")
-        if not 0 < length <= 65536:
+        if not 0 < length <= (2 * 1024 * 1024 if urlsplit(self.path).path == '/api/v1/workspace/state' else 65536):
             raise ValueError("请求大小不合法。")
+        self._body_consumed = True
         body = json.loads(self.rfile.read(length))
         if not isinstance(body, dict):
             raise ValueError("请求必须是 JSON 对象。")
@@ -446,6 +425,32 @@ class Handler(BaseHTTPRequestHandler):
             if not job:
                 return self.contract_error(404, "运行记录不存在，请检查目标目录。", "NOT_FOUND", operation_id)
             return self.send_data(200, job)
+
+        if operation_id == 'workspace.load':
+            return self.send_data(200, server.repository.load())
+        if operation_id == 'workspace.save':
+            return self.send_data(200, server.repository.save(body['state'], body['revision']))
+        if operation_id == 'jobs.cancel':
+            try:
+                server.cancel_job(parameters['jobId'])
+                return self.send_data(202, {'id': parameters['jobId']})
+            except ValueError as error:
+                return self.contract_error(409, str(error), 'CONFLICT', operation_id)
+        if operation_id in ('filters.preview', 'filters.validate', 'fileTypes.inspect'):
+            preview = server.preview(body)
+            return self.send_data(200, {'valid': True, 'errors': []} if operation_id == 'filters.validate' else
+                {'entries': preview['included'] + preview['excluded'], 'unsupported': [], 'warnings': []} if operation_id == 'fileTypes.inspect' else preview)
+        if operation_id in ('archive.algorithms', 'compression.algorithms'):
+            group = operation_id.split('.')[0]
+            return self.send_data(200, [{'id': capabilities()['algorithms'][group][0], 'version': '2' if group == 'archive' else '1',
+                'selfImplemented': True, 'supportedPlatforms': ['Windows', 'macOS', 'Linux']}])
+        if operation_id in ('archive.pack', 'archive.unpack', 'compression.compress', 'compression.decompress'):
+            if body.get('secretRef'): raise ValueError('此算法不支持直接加密，请使用加密接口。')
+            group, action = operation_id.split('.')
+            options = {group: body['options']}
+            native_options(options)
+            for name in ('source', 'destination'): _absolute(body[name])
+            return self.send_data(202, {'id': server.start_job(action, [body['source'], body['destination']], options)})
 
         if operation_id == "backup.start":
             return self.start_backup(body)
@@ -609,8 +614,11 @@ class Handler(BaseHTTPRequestHandler):
         destination = _absolute(body["destination"], "备份位置")
         options = body.get("options") or {}
         incremental = options.get("mode", "full") == "incremental"
+        native_features = any(options.get(key) for key in ('filters', 'metadata', 'archive', 'compression'))
+        if native_features and (incremental or server.force_python or not server.binary):
+            raise ValueError('筛选、元数据和容器压缩目前需要 C++ 完整备份；不能与增量或 Python 引擎组合。')
         if server.binary and not server.force_python and not incremental:
-            job_id = server.start_native_job("backup", [str(source), str(destination)],
+            job_id = server.start_native_job("backup", [str(source), str(destination)], options=options,
                                              on_success=self._backup_success)
         else:
             def runner(update, cancel):
@@ -869,7 +877,14 @@ class Handler(BaseHTTPRequestHandler):
                                        level="success", job_id=job_id)
 
     # --------------------------------------------------------------- tasks
+    def validate_automation_options(self, options):
+        # P5-P7 automation uses its Python incremental engine. Never ignore
+        # P2-P4 policies merely because they are valid for native manual jobs.
+        if any(options.get(key) for key in ('filters', 'metadata', 'archive', 'compression', 'encryption', 'fileTypes')):
+            raise ValueError('自动任务目前仅支持 full/incremental 模式；请在手动 C++ 备份使用筛选、属性和压缩。')
+
     def create_task(self, body):
+        self.validate_automation_options(body.get('options') or {})
         source = _absolute(body["source"], "源目录")
         destination = _absolute(body["destination"], "备份位置")
         task = {
@@ -886,6 +901,7 @@ class Handler(BaseHTTPRequestHandler):
         return self.send_data(200, task)
 
     def update_task(self, task_id, body):
+        self.validate_automation_options(body.get('options') or {})
         task = self.server.store.get_task(task_id)
         if not task:
             return self.contract_error(404, "任务不存在。", "NOT_FOUND", "tasks.update")
@@ -1027,7 +1043,8 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=4173)
-    parser.add_argument("--state-dir", default=None)
+    parser.add_argument("--state-dir", "--data-dir", dest="state_dir", default=None)
+    parser.add_argument("--desktop-parent", action="store_true")
     args = parser.parse_args()
     server = DemoServer(args.port, args.state_dir)
     print(f"BackNest demo ({server.engine_name}): http://127.0.0.1:{server.server_port}", flush=True)
@@ -1035,6 +1052,11 @@ def main():
         print("C++ engine not built; using the compatible Python engine.", flush=True)
         print("Build it with scripts/build.py from a developer shell for native speed.", flush=True)
     print("Backup/restore writes are performed only after an explicit UI action. Ctrl+C to stop.", flush=True)
+    if args.desktop_parent:
+        def parent_exit():
+            sys.stdin.readline()
+            server.shutdown()
+        threading.Thread(target=parent_exit, daemon=True).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
