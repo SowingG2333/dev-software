@@ -1,40 +1,23 @@
-# 本轮核验记录
+# P0–P4 验证记录
 
-日期：2026-11-04。环境：macOS Apple Silicon、Apple Clang、Python 标准库、内置浏览器。Windows/Qt 未实机验证，不标记完成。
+日期：2026-11-15。环境：Windows、MSVC 14.37、Python 3.12、Qt 6.5.3。
 
-## 自动检查
+## 自动验证
 
-`python3 -m unittest discover -s tests/native -v`：**25 项通过**。
+`python -m unittest discover -s tests/native -q`：36 项运行，34 项通过，2 项跳过（Windows 下的 POSIX 权限、符号链接条件）。本地输出见 `artifacts/p0-p4-tests.txt`。
 
-覆盖基础目录备份/还原、中文/空文件/空目录、独立版本、CRC32 对照、损坏/缺失/额外文件、恶意清单、符号链接拒绝、权限失败临时目录清理、本地接口鉴权、来源/Host 校验，以及 v1 契约。
+覆盖基础备份/还原、独立版本、中文与空文件/目录、损坏和恶意清单、目录重叠、非空目标拒绝、本机 API 边界、契约生成一致性、SQLite 重启与修订冲突、取消不发布版本、六维筛选预览与实际清单一致、自定义容器及 RLE。
 
-新增契约检查：
+压缩样本包含空输入、单字符、重复数据、随机 1 MiB、16 MiB 数据，使用独立 Python 解码器交叉验证。坏包、截断、非法游程、路径越界和资源上限均有拒绝测试。16 MiB 测试不代表已做数 GiB 压力测试。
 
-- 13 项课件需求/补充需求分类均有后端 operationId 映射。
-- 全部 56 个预留端点返回结构化 501，不创建 job 或进行文件写入。
-- 能力信息与注册表一致，不公布未实现的压缩/打包/加密算法。
-- 已实现的 v1 请求、JobAccepted、Job、OperationResult 响应符合当前 schema 子集检查。
-- 显式请求未实现的筛选、压缩、加密、元数据、链接保真、增量或覆盖策略时拒绝执行，不退化成普通备份。
-- OpenAPI、前端调用端、类型声明、需求表与唯一注册表保持一致；内部 schema 引用有效。
-- 需要的路径标识、错误方法和未知字段被拒绝。
-- 持久化任务 DTO 不允许保存临时 secretRef。
+真实 HTTP 测试完成筛选预览 → 压缩备份 → 校验 → 还原 → 服务重启后读取工作区，并验证直接编解码端点及非法选项无副作用。
 
-## 浏览器隔离检查
+`python scripts/demo.py`：独立 SHA-256 和目录结构比较通过，源文件不变。`node --check` 已检查 app.js、native.js、features.js。
 
-`tests/backend-ports.html`：**7 项通过**，对所有 63 个声明操作逐个验证前端 transport 映射；另测结构化 501、URL 编码、无效调用提前失败、Qt transport、工作区后端替换与无效状态拒绝。
+## 桌面验证与限制
 
-`tests/state-migration.html`：**7 项通过**，确认初始为空、精确移除旧预置任务、保留用户配置、清理模拟版本、迁移幂等。
+Windows Qt 程序已实际编译启动；界面显示“Qt WebChannel · C++”。新增 `python scripts/check_desktop.py`：使用真实 QWebEnginePage、QWebChannel、生产 C++ ApplicationService 和前端 desktop-transport.js，在隔离临时工作区完成筛选预览、压缩备份、校验、还原及配置保存，退出后用 Python 独立比较目录和 SHA-256。结果 PASS，记录见 `artifacts/qt-check.txt`。测试不依赖鼠标操作，也不使用模拟 transport。
 
-这两组测试使用隔离数据/模拟 transport，不代表扩展算法已实现，也不向正常界面注入示例任务。
+前端接口映射与状态迁移另有 14 项隔离检查通过；这些测试不替代真实文件操作验证。
 
-## 真实浏览器闭环
-
-在独立测试端口使用项目生成的文件：从现有 UI 通过新的 `BackNestBackend.invoke()` 和 `/api/v1` 完成 C++ 备份、选择真实版本、还原到新目录。
-
-独立比较源目录与还原目录：相对路径集合、空目录和所有文件 SHA-256 一致。当前基础回归成功，未把测试文件写入常用工作区任务列表。
-
-## 本轮尚未验证的范围
-
-扩展算法、后端数据库、取消、持久任务恢复、Qt 运行环境、Windows 文件系统和安装包、网络服务均未完成实际实现/验收；仅有相应接口和文档不算通过功能验收。
-
-生成报告/截图、真实备份、构建产物及带本机绝对路径的运行数据保留在被忽略的本地目录，不上传到 GitHub。
+根据用户最新要求，此次只验收 Windows。新版 P2–P4 未在 macOS 实机运行，不对该平台宣称通过。当前桌面运行还依赖 Python 本机服务和 Qt，不是独立安装包。

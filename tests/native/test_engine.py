@@ -51,7 +51,7 @@ class EngineTests(unittest.TestCase):
         (self.source / "子目录" / "空目录").mkdir(parents=True)
         (self.source / "empty.txt").touch()
         (self.source / "中文 文件.txt").write_text("备份测试\n第二行\n", encoding="utf-8")
-        (self.source / 'quotes " and spaces.txt').write_bytes(b"quote test")
+        (self.source / ('quotes and spaces.txt' if os.name == 'nt' else 'quotes " and spaces.txt')).write_bytes(b"quote test")
         (self.source / "子目录" / "binary.bin").write_bytes(bytes(range(256)) * 8193)
 
     def test_round_trip_preserves_all_bytes_names_and_empty_directories(self):
@@ -87,12 +87,12 @@ class EngineTests(unittest.TestCase):
         for index, (snapshot, expected) in enumerate([(first, "old"), (second, "new")]):
             destination = self.root / str(index)
             self.command("restore", snapshot["path"], destination)
-            self.assertEqual((destination / file.name).read_text(), expected)
+            self.assertEqual((destination / file.name).read_text(encoding="utf-8"), expected)
 
     def test_crc_matches_independent_standard_implementation(self):
         (self.source / "crc.txt").write_bytes(b"123456789")
         snapshot = self.command("backup", self.source, self.backups)
-        manifest = (Path(snapshot["path"]) / "manifest.bkn").read_text()
+        manifest = (Path(snapshot["path"]) / "manifest.bkn").read_text(encoding="utf-8")
         self.assertIn(f'F 9 {zlib.crc32(b"123456789")} "crc.txt"', manifest)
 
     def test_source_and_destination_overlap_rejected_without_writes(self):

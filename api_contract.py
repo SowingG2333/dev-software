@@ -5,7 +5,7 @@ Reserved operations return 501. A declared interface is not an implemented featu
 import copy
 import re
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 
 def obj(properties, required=()):
@@ -200,6 +200,26 @@ for operation in OPERATIONS:
         operation["request"] = "CryptoRequest"
 
 
+# P2-P4 implementations; future crypto/scheduling/network ports remain fail-closed.
+SCHEMAS['Job']['properties']['cancelRequested'] = {'type': 'boolean'}
+SCHEMAS['WorkspaceState'] = obj({'schemaVersion': {'type': 'integer'}, 'tasks': {'type': 'array', 'items': {'type': 'object'}},
+    'logs': {'type': 'array', 'items': {'type': 'object'}}, 'settings': {'type': 'object'}}, ['tasks', 'logs', 'settings'])
+SCHEMAS['WorkspaceEnvelope'] = obj({'revision': {'type': 'integer', 'minimum': 0}, 'state': {}}, ['revision', 'state'])
+SCHEMAS['WorkspaceSave'] = obj({'revision': {'type': 'integer', 'minimum': 0}, 'state': ref('WorkspaceState')}, ['revision', 'state'])
+add('workspace.load', 'GET', '/workspace/state', 'gui', '读取后端工作区', response='WorkspaceEnvelope', implemented=True)
+add('workspace.save', 'POST', '/workspace/state', 'gui', '事务保存后端工作区', 'WorkspaceSave', response='WorkspaceEnvelope', implemented=True)
+for operation in OPERATIONS:
+    if operation['id'] in {'jobs.cancel', 'filters.preview', 'filters.validate', 'fileTypes.inspect',
+                           'archive.algorithms', 'compression.algorithms', 'archive.pack', 'archive.unpack',
+                           'compression.compress', 'compression.decompress'}:
+        operation['implemented'] = True
+for requirement in REQUIREMENTS:
+    if requirement['id'] in ('archive', 'compression', 'custom_backup'):
+        requirement['status'] = 'implemented'
+    if requirement['id'] == 'metadata': requirement['status'] = 'mtime_basic_permissions_only'
+    if requirement['id'] == 'gui': requirement['status'] = 'web_and_qt_adapter_backend_persistence'
+
+
 def match_operation(method, path):
     for operation in OPERATIONS:
         pattern = "/".join("([^/]+)" if part.startswith("{") and part.endswith("}") else re.escape(part)
@@ -213,10 +233,12 @@ def match_operation(method, path):
 
 def capabilities():
     return {"apiVersion": VERSION, "operations": copy.deepcopy(OPERATIONS), "requirements": copy.deepcopy(REQUIREMENTS),
-            "algorithms": {"archive": [], "compression": [], "encryption": [], "integrity": ["crc32-self-implemented"]},
+            "algorithms": {"archive": ["bkn-container-v2"], "compression": ["rle-block-v1"], "encryption": [], "integrity": ["crc32-self-implemented"]},
             "algorithmPolicy": {"archive": "self_implemented_only", "compression": "self_implemented_only", "encryption": "libraries_allowed"},
             "supportedRestorePolicies": ["require_empty"],
-            "persistence": "browser_local_only", "platforms": {"macOS": "tested", "Windows": "build_entry_only_not_verified"}}
+            "persistence": "sqlite_backend", "platforms": {"macOS": "p2_p4_not_verified", "Windows": "native_tests_available"},
+            "fileTypes": {"regular": "contents", "directory": "including_empty", "hardlinks": "copy_contents", "symlinks": "reject", "reparsePoints": "reject", "specialFiles": "reject"},
+            "metadata": {"times": "modification_time_only", "permissions": "posix_mode_or_windows_readonly", "owner": "filter_only", "acl": "unsupported", "xattrs": "unsupported"}}
 
 
 def validate(value, schema, path="body"):
@@ -261,8 +283,12 @@ def unsupported_option(operation_id, body):
         options = body.get("options", {})
         if options.get("mode", "full") != "full":
             return "incremental.preview"
-        checks = [("filters", "filters.preview"), ("metadata", "metadata.apply"), ("archive", "archive.pack"),
-                  ("compression", "compression.compress"), ("encryption", "encryption.encrypt")]
+        checks = [("encryption", "encryption.encrypt")]
+        for name, algorithm in [('archive', 'bkn-container-v2'), ('compression', 'rle-block-v1')]:
+            if options.get(name) and options[name]['algorithm'] != algorithm:
+                return name + '.algorithm'
+        if any(name not in ('times', 'permissions') for name in options.get('metadata', {}).get('preserve', [])):
+            return 'metadata.apply'
         for key, capability in checks:
             if options.get(key):
                 return capability

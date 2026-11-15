@@ -1,5 +1,6 @@
 /* Same-origin bridge to the local C++ process; no simulated progress or results. */
 'use strict';
+let activeNativeJob=null;
 let nativeSession=null, nativeBusy=false, pickerContext=null, backendApi=null;
 
 function engineMessage(message){
@@ -16,6 +17,9 @@ function engineMessage(message){
   ['Cannot write file','无法写入文件，请检查目标目录的权限和可用空间。'],
   ['Write failed','写入失败，请检查目标磁盘是否已满或已断开。'],
   ['manifest','备份清单无效、损坏或不受支持。'],
+  ['cancelled before commit','操作已取消，未生成成功版本。'],
+  ['resource limit','超过解包资源上限。'],
+  ['reparse point','暂不支持重解析点（如目录联接），本次操作已停止。'],
  ];
  return translations.find(([key])=>message.includes(key))?.[1]||message;
 }
@@ -29,26 +33,36 @@ async function connectNative(){
   if(!response.ok)return;
   const session=await response.json();
   if(session.engine!=='C++17')return;
-  const port=new BackNestBackend({token:session.token});
+  const transport=await connectQtTransport();
+  const port=new BackNestBackend({token:session.token,transport});
   const capabilities=await port.invoke('system.capabilities');
-  backendApi=port;nativeSession={...session,capabilities};
+  backendApi=port;nativeSession={...session,capabilities,desktop:!!transport};
+  let revision=0;
+  state=await workspaceStore.attach({
+   async load(){const saved=await port.invoke('workspace.load');revision=saved.revision;if(saved.state)return saved.state;
+    const created=await port.invoke('workspace.save',{body:{state,revision}});revision=created.revision;return created.state},
+   async save(value){const saved=await port.invoke('workspace.save',{body:{state:value,revision}});revision=saved.revision}
+  });
   render();
   const pending=state.tasks.find(task=>task.activeJob);
   if(pending){
    nativeBusy=true;
    try{await completeBackupJob(pending,pending.activeJob)}finally{nativeBusy=false;render()}
   }
- }catch{/* Static UI can still open; native actions explain how to start the engine. */}
+ }catch(error){toast('连接或加载工作区失败：'+error.message)}
 }
 function localTime(iso){return new Date(iso||Date.now()).toLocaleString('zh-CN',{hour12:false})}
 async function pollNativeJob(id,onProgress){
+ activeNativeJob=id;
+ try{
  for(;;){
   const job=await nativeRequest('jobs.get',{path:{jobId:id}});
-  if(job.state==='failed')throw Error(engineMessage(job.error||'文件操作失败。'));
+  if(job.state==='failed'||job.state==='cancelled')throw Error(engineMessage(job.error||'文件操作失败。'));
   if(job.state==='completed')return job.result;
   onProgress?.(job);
   await new Promise(resolve=>setTimeout(resolve,250));
  }
+ }finally{if(activeNativeJob===id)activeNativeJob=null}
 }
 async function completeBackupJob(task,jobId){
  try{
@@ -74,10 +88,10 @@ async function completeBackupJob(task,jobId){
 async function performBackup(id){
  const task=getTask(id);if(!task)return;
  if(nativeBusy){toast('已有文件操作正在运行，请等待完成。');return}
- if(task.type!=='完整备份'||task.compression||task.encryption){toast('基础版仅支持未压缩、未加密的完整备份，请新建基础备份任务。');return}
+ if(task.type!=='完整备份'||task.encryption){toast('当前仅支持完整备份，暂不支持加密。');return}
  nativeBusy=true;render();
  try{
-  const job=await nativeRequest('backup.start',{body:{source:task.path,destination:task.target}});
+  const job=await nativeRequest('backup.start',{body:{source:task.path,destination:task.target,options:task.options||{}}});
   task.activeJob=job.id;task.status='running';delete task.lastError;persist();
   await completeBackupJob(task,job.id);
  }catch(error){toast(error.message)}finally{nativeBusy=false;render()}
@@ -90,7 +104,7 @@ async function performRestore(id,index){
  nativeBusy=true;
  try{
   const job=await nativeRequest('restore.start',{body:{snapshot:version.path,destination}});
-  openModal(`${modalHead('正在还原')}<div class="modal-body"><p class="subtext">先校验备份内容，再写入目标目录。请等待操作结果。</p><div class="progress-track"><span id="restore-progress" style="width:0%"></span></div><p class="subtext" id="restore-progress-label">正在校验…</p></div>`);
+  openModal(`${modalHead('正在还原')}<div class="modal-body"><p class="subtext">先校验备份内容，再写入目标目录。请等待操作结果。</p><div class="progress-track"><span id="restore-progress" style="width:0%"></span></div><p class="subtext" id="restore-progress-label">正在校验…</p><button class="btn" data-native="cancel">取消当前操作</button></div>`);
   const result=await pollNativeJob(job.id,progress=>{
    const bar=document.getElementById('restore-progress'),label=document.getElementById('restore-progress-label');
    if(bar)bar.style.width=`${progress.totalBytes?Math.min(99,Math.round(progress.bytes/progress.totalBytes*100)):0}%`;
@@ -144,12 +158,14 @@ function returnFromPicker(chosen){
  else openImportModal(path);
 }
 function openImportModal(path=''){
- openModal(`${modalHead('导入已有备份','选择包含 manifest.bkn 与 data 目录的完整备份版本。')}<div class="modal-body"><div class="field"><label for="import-path">备份版本目录</label><div class="input-with-button"><input id="import-path" value="${esc(path)}" placeholder="备份位置 / snapshot-…"><button class="btn" data-native="pick-import">浏览</button></div></div><p class="subtext">导入前会校验文件内容。不会修改备份，也不会自动还原。</p></div><div class="modal-footer"><button class="btn" data-action="close">取消</button><button class="btn primary" data-native="import">校验并导入</button></div>`);
+ openModal(`${modalHead('导入已有备份','输入目录快照或 .bka 单文件容器路径。')}<div class="modal-body"><div class="field"><label for="import-path">备份版本路径</label><div class="input-with-button"><input id="import-path" value="${esc(path)}" placeholder="备份位置 / snapshot-…"><button class="btn" data-native="pick-import">浏览</button></div></div><p class="subtext">导入前会校验文件内容。不会修改备份，也不会自动还原。</p></div><div class="modal-footer"><button class="btn" data-action="close">取消</button><button class="btn primary" data-native="import">校验并导入</button></div>`);
 }
 document.addEventListener('click',event=>{
  const control=event.target.closest('[data-native]');if(!control)return;
  event.stopImmediatePropagation();
  const {native:action,id,index,path}=control.dataset;
+ if(action==='preview')previewWizard();
+ if(action==='cancel')cancelActiveJob();
  if(action==='pick-source')openDirectoryPicker('source');
  if(action==='pick-target')openDirectoryPicker('target');
  if(action==='pick-restore')openDirectoryPicker('restore',id,Number(index));

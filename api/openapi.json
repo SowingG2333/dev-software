@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "BackNest Backend Contract",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Reserved routes return 501, never simulated success. Archive/compression algorithms must be self-implemented; crypto libraries are allowed."
   },
   "servers": [
@@ -552,7 +552,7 @@
         "tags": [
           "gui"
         ],
-        "x-implemented": false,
+        "x-implemented": true,
         "x-requirement": "gui",
         "security": [
           {
@@ -631,7 +631,7 @@
         "tags": [
           "file_types"
         ],
-        "x-implemented": false,
+        "x-implemented": true,
         "x-requirement": "file_types",
         "security": [
           {
@@ -868,7 +868,7 @@
         "tags": [
           "custom_backup"
         ],
-        "x-implemented": false,
+        "x-implemented": true,
         "x-requirement": "custom_backup",
         "security": [
           {
@@ -947,7 +947,7 @@
         "tags": [
           "custom_backup"
         ],
-        "x-implemented": false,
+        "x-implemented": true,
         "x-requirement": "custom_backup",
         "security": [
           {
@@ -1026,7 +1026,7 @@
         "tags": [
           "archive"
         ],
-        "x-implemented": false,
+        "x-implemented": true,
         "x-requirement": "archive",
         "security": [
           {
@@ -1095,7 +1095,7 @@
         "tags": [
           "compression"
         ],
-        "x-implemented": false,
+        "x-implemented": true,
         "x-requirement": "compression",
         "security": [
           {
@@ -1233,7 +1233,7 @@
         "tags": [
           "archive"
         ],
-        "x-implemented": false,
+        "x-implemented": true,
         "x-requirement": "archive",
         "security": [
           {
@@ -1312,7 +1312,7 @@
         "tags": [
           "archive"
         ],
-        "x-implemented": false,
+        "x-implemented": true,
         "x-requirement": "archive",
         "security": [
           {
@@ -1391,7 +1391,7 @@
         "tags": [
           "compression"
         ],
-        "x-implemented": false,
+        "x-implemented": true,
         "x-requirement": "compression",
         "security": [
           {
@@ -1470,7 +1470,7 @@
         "tags": [
           "compression"
         ],
-        "x-implemented": false,
+        "x-implemented": true,
         "x-requirement": "compression",
         "security": [
           {
@@ -4910,6 +4910,152 @@
           }
         }
       }
+    },
+    "/api/v1/workspace/state": {
+      "get": {
+        "operationId": "workspace.load",
+        "summary": "读取后端工作区",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": true,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "workspace.save",
+        "summary": "事务保存后端工作区",
+        "tags": [
+          "gui"
+        ],
+        "x-implemented": true,
+        "x-requirement": "gui",
+        "security": [
+          {
+            "LocalSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功（仅 x-implemented=true 当前可用）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本机会话或来源不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "接口已预留但功能未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceSave"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5004,6 +5150,9 @@
           "error": {
             "type": "string",
             "minLength": 1
+          },
+          "cancelRequested": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -6469,6 +6618,67 @@
           "type": "string",
           "format": "date-time"
         }
+      },
+      "WorkspaceState": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "settings": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "tasks",
+          "logs",
+          "settings"
+        ],
+        "additionalProperties": false
+      },
+      "WorkspaceEnvelope": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "state": {}
+        },
+        "required": [
+          "revision",
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "WorkspaceSave": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "state": {
+            "$ref": "#/components/schemas/WorkspaceState"
+          }
+        },
+        "required": [
+          "revision",
+          "state"
+        ],
+        "additionalProperties": false
       }
     },
     "securitySchemes": {

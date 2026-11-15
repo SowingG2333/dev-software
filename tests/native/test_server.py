@@ -7,7 +7,8 @@ import threading
 import time
 import unittest
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
+from urllib.request import Request, build_opener, ProxyHandler
+urlopen = build_opener(ProxyHandler({})).open
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))

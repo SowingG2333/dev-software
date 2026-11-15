@@ -8,7 +8,8 @@ import threading
 import time
 import unittest
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
+from urllib.request import Request, build_opener, ProxyHandler
+urlopen = build_opener(ProxyHandler({})).open
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -98,11 +99,11 @@ class ContractTests(unittest.TestCase):
         code, result = self.request("GET", "/api/v1/capabilities")
         self.assertEqual(code, 200)
         self.assertEqual(result["operations"], OPERATIONS)
-        self.assertEqual(result["algorithms"]["compression"], [])
-        self.assertEqual(result["algorithms"]["archive"], [])
+        self.assertEqual(result["algorithms"]["compression"], ["rle-block-v1"])
+        self.assertEqual(result["algorithms"]["archive"], ["bkn-container-v2"])
         self.assertEqual(result["algorithmPolicy"]["compression"], "self_implemented_only")
         self.assertEqual(result["algorithmPolicy"]["encryption"], "libraries_allowed")
-        self.assertEqual(result["persistence"], "browser_local_only")
+        self.assertEqual(result["persistence"], "sqlite_backend")
 
     def test_requests_cannot_silently_enable_extensions(self):
         with tempfile.TemporaryDirectory(prefix="contract-") as temp:
@@ -111,7 +112,7 @@ class ContractTests(unittest.TestCase):
             source.mkdir()
             for options in [{"mode": "incremental"}, {"compression": {"algorithm": "huffman-v1"}},
                             {"archive": {"algorithm": "bkn-container-v1"}}, {"encryption": {"algorithm": "aes-gcm", "secretRef": "temporary"}},
-                            {"filters": {"names": ["*.txt"]}}, {"metadata": {"preserve": ["owner"]}},
+                            {"metadata": {"preserve": ["owner"]}},
                             {"fileTypes": {"symlinks": "preserve"}}]:
                 for path in ["/api/v1/backups", "/api/backup"]:
                     with self.subTest(options=options, path=path):

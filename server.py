@@ -14,6 +14,9 @@ import secrets
 import subprocess
 import sys
 import threading
+import tempfile
+from repository import Repository
+from native_options import native_options
 from urllib.parse import parse_qs, urlsplit
 import uuid
 from api_contract import OPERATIONS, SCHEMAS, capabilities, match_operation, openapi, unsupported_option, validate
@@ -21,37 +24,49 @@ from api_contract import OPERATIONS, SCHEMAS, capabilities, match_operation, ope
 sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
 from build import build, ROOT  # noqa: E402
 
-STATIC_FILES = {"index.html", "app.js", "state.js", "native.js", "styles.css", "backend-api.js", "workspace-store.js"}
+STATIC_FILES = {"index.html", "app.js", "state.js", "native.js", "styles.css", "backend-api.js", "workspace-store.js", "features.js", "desktop-transport.js"}
 
 
 class DemoServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, port):
+    def __init__(self, port, data_dir=None):
         self.binary = build()
         self.token = secrets.token_urlsafe(32)
-        self.jobs = {}
+        self.temporary_data = tempfile.TemporaryDirectory(prefix='backnest-service-') if port == 0 and data_dir is None else None
+        self.repository = Repository(data_dir or (self.temporary_data.name if self.temporary_data else ROOT / '.backnest'))
+        self.jobs = self.repository.recover_jobs()
+        self.workers = []
+        self.closing = False
+        self.controls = self.repository.directory / 'controls'
+        self.controls.mkdir(exist_ok=True)
         self.jobs_lock = threading.Lock()
         self.engine_lock = threading.Lock()
         super().__init__(("127.0.0.1", port), Handler)
 
-    def start_job(self, operation, arguments):
-        if not self.engine_lock.acquire(blocking=False):
+    def start_job(self, operation, arguments, options=None):
+        content = native_options(options or {})
+        if self.closing or not self.engine_lock.acquire(blocking=False):
             raise ValueError("已有备份或还原正在运行，请等待完成。")
         job_id = uuid.uuid4().hex
         with self.jobs_lock:
             self.jobs[job_id] = {"id": job_id, "operation": operation, "state": "running", "phase": "starting",
                                  "files": 0, "totalFiles": 0, "bytes": 0, "totalBytes": 0, "path": ""}
-        worker = threading.Thread(target=self.run_job, args=(job_id, operation, arguments), daemon=True)
+        self.repository.save_job(self.jobs[job_id])
+        worker = threading.Thread(target=self.run_job, args=(job_id, operation, arguments, content), daemon=True)
+        self.workers.append(worker)
         worker.start()
         return job_id
 
-    def run_job(self, job_id, operation, arguments):
+    def run_job(self, job_id, operation, arguments, content):
         process = None
         try:
+            option_file = self.controls / (job_id + '.options')
+            option_file.write_text(content, encoding='utf-8')
+            environment = {**os.environ, 'BACKNEST_OPTIONS': str(option_file), 'BACKNEST_DECISION': str(self.controls / job_id)}
             # Argument array only: user paths are never interpreted as shell code.
             process = subprocess.Popen([str(self.binary), operation] + arguments, stdout=subprocess.PIPE,
-                                       stderr=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace")
+                                       stderr=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace", env=environment)
             result = None
             failure = None
             for line in process.stdout:
@@ -74,16 +89,66 @@ class DemoServer(ThreadingHTTPServer):
                 process.terminate()
                 process.wait()
             with self.jobs_lock:
-                self.jobs[job_id].update(state="failed", error=str(error))
+                accepted = self.jobs[job_id].pop('cancelRequested', False)
+                self.jobs[job_id].update(state='cancelled' if accepted else 'failed', phase='cancelled' if accepted else 'failed', error=str(error))
         finally:
             if process and process.stdout:
                 process.stdout.close()
+            with self.jobs_lock:
+                self.jobs[job_id].pop('cancelRequested', None)
+                self.repository.save_job(self.jobs[job_id])
+            (self.controls / (job_id + '.options')).unlink(missing_ok=True)
+            control = self.controls / job_id
+            if control.is_dir():
+                control.rmdir()
             self.engine_lock.release()
             with self.jobs_lock:
                 # Bound retained results; never discard the active job.
                 for old in list(self.jobs)[:-100]:
                     if self.jobs[old]["state"] != "running":
                         del self.jobs[old]
+
+    def cancel_job(self, job_id):
+        with self.jobs_lock:
+            job = self.jobs.get(job_id)
+            if not job or job['state'] != 'running':
+                raise ValueError('任务已结束或不存在。')
+            if job.get('cancelRequested'):
+                return
+            try:
+                (self.controls / job_id).mkdir()
+            except FileExistsError:
+                raise ValueError('任务已进入提交阶段，不能取消；请等待最终结果。')
+            job['cancelRequested'] = True
+            self.repository.save_job(job)
+
+    def preview(self, body):
+        content = native_options({key: body[key] for key in ('filters', 'fileTypes') if key in body})
+        with tempfile.TemporaryDirectory(prefix='backnest-preview-') as directory:
+            path = Path(directory) / 'options'
+            path.write_text(content, encoding='utf-8')
+            env = {**os.environ, 'BACKNEST_OPTIONS': str(path), 'BACKNEST_DECISION': ''}
+            run = subprocess.run([str(self.binary), 'preview', body['source']], capture_output=True,
+                                 encoding='utf-8', timeout=120, env=env)
+            events = [json.loads(line) for line in run.stdout.splitlines()]
+            if run.returncode or not events:
+                raise ValueError(events[-1].get('message', '扫描失败。') if events else '扫描失败。')
+            return {key: value for key, value in events[-1].items() if key != 'event'}
+
+    def server_close(self):
+        self.closing = True
+        for job in list(self.jobs.values()):
+            if job['state'] == 'running':
+                try:
+                    self.cancel_job(job['id'])
+                except ValueError:
+                    pass
+        for worker in self.workers:
+            worker.join()
+        super().server_close()
+        self.repository.close()
+        if self.temporary_data:
+            self.temporary_data.cleanup()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -94,6 +159,20 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def send_data(self, status, data, content_type="application/json; charset=utf-8"):
+        # Consume a bounded rejected request body before closing the connection.
+        # Otherwise Windows can reset the socket and discard the 4xx/501 response.
+        if not getattr(self, '_body_consumed', False):
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+            except ValueError:
+                length = 0
+            if 0 < length <= 65536:
+                self.connection.settimeout(5)
+                try:
+                    self.rfile.read(length)
+                except (OSError, TimeoutError):
+                    pass
+            self._body_consumed = True
         if isinstance(data, (dict, list)):
             data = json.dumps(data, ensure_ascii=False).encode("utf-8")
         elif isinstance(data, str):
@@ -104,7 +183,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
-        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' qrc:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
         self.end_headers()
         self.wfile.write(data)
 
@@ -143,8 +222,9 @@ class Handler(BaseHTTPRequestHandler):
             return {}
         if self.headers.get("Content-Type", "").split(";", 1)[0] != "application/json":
             raise ValueError("请求必须使用 JSON。")
-        if not 0 < length <= 16384:
+        if not 0 < length <= (2 * 1024 * 1024 if urlsplit(self.path).path == '/api/v1/workspace/state' else 65536):
             raise ValueError("请求大小不合法。")
+        self._body_consumed = True
         body = json.loads(self.rfile.read(length))
         if not isinstance(body, dict):
             raise ValueError("请求必须是 JSON 对象。")
@@ -177,7 +257,7 @@ class Handler(BaseHTTPRequestHandler):
             if not path.is_absolute():
                 raise ValueError("请使用绝对路径，或点击“浏览”选择本机目录。")
             args.append(str(path))
-        self.send_data(202, {"id": self.server.start_job(operation, args)})
+        self.send_data(202, {"id": self.server.start_job(operation, args, body.get('options', {}))})
 
     def handle_contract(self, method):
         url = urlsplit(self.path)
@@ -201,6 +281,39 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_data(200, openapi())
             elif operation_id == "filesystem.directories":
                 self.send_directories(parse_qs(url.query))
+            elif operation_id == 'workspace.load':
+                self.send_data(200, self.server.repository.load())
+            elif operation_id == 'workspace.save':
+                body = self.read_body()
+                validate(body, SCHEMAS['WorkspaceSave'])
+                self.send_data(200, self.server.repository.save(body['state'], body['revision']))
+            elif operation_id == 'jobs.cancel':
+                try:
+                    self.server.cancel_job(parameters['jobId'])
+                    self.send_data(202, {'id': parameters['jobId']})
+                except ValueError as error:
+                    self.contract_error(409, str(error), 'CONFLICT', operation_id)
+            elif operation_id in ('filters.preview', 'filters.validate', 'fileTypes.inspect'):
+                body = self.read_body()
+                validate(body, SCHEMAS['ScanRequest'])
+                preview = self.server.preview(body)
+                self.send_data(200, {'valid': True, 'errors': []} if operation_id == 'filters.validate' else
+                               {'entries': preview['included'] + preview['excluded'], 'unsupported': [], 'warnings': []} if operation_id == 'fileTypes.inspect' else preview)
+            elif operation_id in ('archive.algorithms', 'compression.algorithms'):
+                group = operation_id.split('.')[0]
+                self.send_data(200, [{'id': capabilities()['algorithms'][group][0], 'version': '2' if group == 'archive' else '1',
+                                     'selfImplemented': True, 'supportedPlatforms': ['Windows', 'macOS', 'Linux']}])
+            elif operation_id in ('archive.pack', 'archive.unpack', 'compression.compress', 'compression.decompress'):
+                body = self.read_body()
+                validate(body, SCHEMAS['CodecRequest'])
+                if body.get('secretRef'):
+                    raise ValueError('此算法不支持加密。')
+                group, action = operation_id.split('.')
+                options = {group: body['options']}
+                native_options(options)
+                if not all(Path(body[name]).is_absolute() for name in ('source', 'destination')):
+                    raise ValueError('请使用绝对路径。')
+                self.send_data(202, {'id': self.server.start_job(action, [body['source'], body['destination']], options)})
             elif operation_id == "jobs.get":
                 with self.server.jobs_lock:
                     job = self.server.jobs.get(parameters["jobId"])
@@ -288,10 +401,17 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=4173)
+    parser.add_argument('--data-dir', type=Path, default=ROOT / '.backnest')
+    parser.add_argument('--desktop-parent', action='store_true')
     args = parser.parse_args()
-    server = DemoServer(args.port)
+    server = DemoServer(args.port, args.data_dir)
     print(f"BackNest C++ basic demo: http://127.0.0.1:{server.server_port}", flush=True)
     print("Backup/restore writes are performed only after an explicit UI action. Ctrl+C to stop.", flush=True)
+    if args.desktop_parent:
+        def parent_closed():
+            sys.stdin.readline()
+            server.shutdown()
+        threading.Thread(target=parent_closed, daemon=True).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
