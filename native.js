@@ -17,9 +17,13 @@ function engineMessage(message){
   ['Cannot write file','无法写入文件，请检查目标目录的权限和可用空间。'],
   ['Write failed','写入失败，请检查目标磁盘是否已满或已断开。'],
   ['manifest','备份清单无效、损坏或不受支持。'],
-  ['cancelled before commit','操作已取消，未生成成功版本。'],
-  ['resource limit','超过解包资源上限。'],
-  ['reparse point','暂不支持重解析点（如目录联接），本次操作已停止。'],
+  ['Wrong password','密码错误，或文件已被篡改。'],
+  ['tampered','密码错误，或文件已被篡改。'],
+  ['secretRef','短期密码引用无效或已过期，请重新输入密码。'],
+  ['already exists','目标已存在，请换一个新路径。'],
+  ['new or empty directory','目标必须是新目录或空目录，不会覆盖已有文件。'],
+  ['maximum','内容超过允许的输出上限。'],
+  ['cron','定时表达式无效，请使用 5 个字段：分 时 日 月 周。'],
  ];
  return translations.find(([key])=>message.includes(key))?.[1]||message;
 }
@@ -32,7 +36,7 @@ async function connectNative(){
   const response=await fetch('/api/session',{cache:'no-store'});
   if(!response.ok)return;
   const session=await response.json();
-  if(session.engine!=='C++17')return;
+  if(!['C++17','Python'].includes(session.engine))return;
   const transport=await connectQtTransport();
   const port=new BackNestBackend({token:session.token,transport});
   const capabilities=await port.invoke('system.capabilities');
@@ -88,7 +92,7 @@ async function completeBackupJob(task,jobId){
 async function performBackup(id){
  const task=getTask(id);if(!task)return;
  if(nativeBusy){toast('已有文件操作正在运行，请等待完成。');return}
- if(task.type!=='完整备份'||task.encryption){toast('当前仅支持完整备份，暂不支持加密。');return}
+ if(task.type!=='完整备份'){toast('基础版任务仅支持完整备份；加密、增量、远端请使用扩展能力页。');return}
  nativeBusy=true;render();
  try{
   const job=await nativeRequest('backup.start',{body:{source:task.path,destination:task.target,options:task.options||{}}});
@@ -104,7 +108,7 @@ async function performRestore(id,index){
  nativeBusy=true;
  try{
   const job=await nativeRequest('restore.start',{body:{snapshot:version.path,destination}});
-  openModal(`${modalHead('正在还原')}<div class="modal-body"><p class="subtext">先校验备份内容，再写入目标目录。请等待操作结果。</p><div class="progress-track"><span id="restore-progress" style="width:0%"></span></div><p class="subtext" id="restore-progress-label">正在校验…</p><button class="btn" data-native="cancel">取消当前操作</button></div>`);
+  openModal(`${modalHead('正在还原')}<div class="modal-body"><p class="subtext">先校验备份内容，再写入目标目录。请等待操作结果。</p><div class="progress-track"><span id="restore-progress" style="width:0%"></span></div><p class="subtext" id="restore-progress-label">正在校验…</p></div>`);
   const result=await pollNativeJob(job.id,progress=>{
    const bar=document.getElementById('restore-progress'),label=document.getElementById('restore-progress-label');
    if(bar)bar.style.width=`${progress.totalBytes?Math.min(99,Math.round(progress.bytes/progress.totalBytes*100)):0}%`;
@@ -127,7 +131,7 @@ async function importBackup(){
   toast('正在检查备份内容…');
   const result=await pollNativeJob(job.id);
   let task=state.tasks.find(t=>t.versions.some(v=>v.path===result.path));
-  if(!task){task={id:`import-${Date.now()}`,name:result.source.split(/[\\/]/).filter(Boolean).at(-1)||'已导入备份',path:result.source,target:result.path.replace(/[\\/][^\\/]+$/,''),type:'完整备份',compression:false,encryption:false,schedule:'手动备份',enabled:false,versions:[],status:'done',color:''};state.tasks.unshift(task)}
+  if(!task){task={id:`import-${Date.now()}`,name:result.source.split(/[\\/]/).filter(Boolean).at(-1)||'已导入备份',path:result.source,target:result.path.replace(/[\\/][^\\/]+$/,''),type:'完整备份',schedule:'手动备份',enabled:false,versions:[],status:'done',color:''};state.tasks.unshift(task)}
   if(!task.versions.some(v=>v.path===result.path))task.versions.push({id:result.path,path:result.path,label:`导入于 ${localTime(result.completedAt)}`,files:result.files,directories:result.directories,bytes:result.bytes,size:formatSize(result.bytes),verified:true});
   task.files=result.files;task.size=formatSize(result.bytes);task.time=localTime(result.completedAt);task.status='done';selected=task.id;
   log(`${task.name} · 已导入备份`,`${result.path} · 内容校验通过`,'success');persist();closeModal();navigate('restore');toast('备份已校验并导入。');
@@ -136,7 +140,7 @@ async function importBackup(){
 async function openDirectoryPicker(kind,id,index){
  if(!nativeSession){toast('请先运行 python3 server.py 连接本机目录。');return}
  if(wizard)readWizard();
- const current=kind==='source'?wizard?.path:kind==='target'?wizard?.target:kind==='restore'?document.getElementById('restore-target')?.value:document.getElementById('import-path')?.value;
+ const current=kind==='source'?wizard?.path:kind==='target'?wizard?.target:kind==='restore'?document.getElementById('restore-target')?.value:kind==='input'?document.getElementById(id)?.value:document.getElementById('import-path')?.value;
  pickerContext={kind,id,index,previous:current};
  await showDirectories(current||nativeSession.workspace);
 }
@@ -154,11 +158,13 @@ function returnFromPicker(chosen){
  if(context.kind==='source'||context.kind==='target'){
   if(chosen){wizard[context.kind==='source'?'path':'target']=path;if(context.kind==='source'&&!wizard.name)wizard.name=path.split(/[\\/]/).filter(Boolean).at(-1)||'文件备份'}
   renderWizard();
+ }else if(context.kind==='input'){
+  if(chosen){const input=document.getElementById(context.id);if(input)input.value=path}
  }else if(context.kind==='restore')restoreModal(context.id,context.index,path);
  else openImportModal(path);
 }
 function openImportModal(path=''){
- openModal(`${modalHead('导入已有备份','输入目录快照或 .bka 单文件容器路径。')}<div class="modal-body"><div class="field"><label for="import-path">备份版本路径</label><div class="input-with-button"><input id="import-path" value="${esc(path)}" placeholder="备份位置 / snapshot-…"><button class="btn" data-native="pick-import">浏览</button></div></div><p class="subtext">导入前会校验文件内容。不会修改备份，也不会自动还原。</p></div><div class="modal-footer"><button class="btn" data-action="close">取消</button><button class="btn primary" data-native="import">校验并导入</button></div>`);
+ openModal(`${modalHead('导入已有备份','选择包含 manifest.bkn 与 data 目录的完整备份版本。')}<div class="modal-body"><div class="field"><label for="import-path">备份版本目录</label><div class="input-with-button"><input id="import-path" value="${esc(path)}" placeholder="备份位置 / snapshot-…"><button class="btn" data-native="pick-import">浏览</button></div></div><p class="subtext">导入前会校验文件内容。不会修改备份，也不会自动还原。</p></div><div class="modal-footer"><button class="btn" data-action="close">取消</button><button class="btn primary" data-native="import">校验并导入</button></div>`);
 }
 document.addEventListener('click',event=>{
  const control=event.target.closest('[data-native]');if(!control)return;
@@ -170,6 +176,7 @@ document.addEventListener('click',event=>{
  if(action==='pick-target')openDirectoryPicker('target');
  if(action==='pick-restore')openDirectoryPicker('restore',id,Number(index));
  if(action==='pick-import')openDirectoryPicker('import');
+ if(action==='pick-input')openDirectoryPicker('input',id);
  if(action==='directory')showDirectories(path);
  if(action==='picker-cancel')returnFromPicker(false);
  if(action==='picker-select')returnFromPicker(true);

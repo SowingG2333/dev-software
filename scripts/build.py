@@ -39,10 +39,14 @@ def build(force=False):
                 os.environ['PATH'] = str(vc / 'bin/Hostx64/x64') + os.pathsep + str(kits / 'bin' / sdk / 'x64') + os.pathsep + os.environ['PATH']
                 os.environ['INCLUDE'] = ';'.join(map(str, [vc / 'include'] + [kits / 'Include' / sdk / p for p in ('ucrt', 'shared', 'um', 'winrt')]))
                 os.environ['LIB'] = ';'.join(map(str, [vc / 'lib/x64'] + [kits / 'Lib' / sdk / p / 'x64' for p in ('ucrt', 'um')]))
-        if not compiler:
-            raise RuntimeError("Install Visual Studio C++ build tools and Windows SDK.")
-        command = [compiler, "/nologo", "/std:c++17", "/EHsc", "/utf-8", "/W4", str(source),
-                   "/Fe:" + str(BINARY), "/Fo:" + str(BINARY.parent / "backnest.obj")]
+        if compiler:
+            command = [compiler, "/nologo", "/std:c++17", "/EHsc", "/utf-8", "/W4", str(source),
+                       "/Fe:" + str(BINARY), "/Fo:" + str(BINARY.parent / "backnest.obj")]
+        else:
+            compiler = shutil.which("g++") or shutil.which("clang++")
+            if not compiler:
+                raise RuntimeError("Install Visual Studio C++ tools or put g++/clang++ on PATH.")
+            command = [compiler, "-std=c++17", "-O2", "-municode", "-Wall", "-Wextra", "-Wpedantic", str(source), "-o", str(BINARY)]
     else:
         compiler = shutil.which("clang++") or shutil.which("g++")
         if not compiler:

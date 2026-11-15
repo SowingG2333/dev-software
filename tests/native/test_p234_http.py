@@ -72,6 +72,40 @@ class ExtendedHTTPTests(unittest.TestCase):
         code, loaded = self.request('workspace/state')
         self.assertEqual(loaded, saved)
 
+    def test_container_can_use_upstream_encryption_then_restore(self):
+        source = self.root / 'source'; source.mkdir()
+        (source / 'data.txt').write_bytes(b'abc' * 30000)
+        backup = self.wait(self.request('backups', {'source': str(source), 'destination': str(self.root / 'versions'),
+            'options': {'compression': {'algorithm': 'rle-block-v1'}}}))
+        code, secret = self.request('secrets', {'value': 'integration-only-password', 'purpose': 'encryption'})
+        self.assertEqual(code, 200)
+        encoded, decoded = self.root / 'encrypted', self.root / 'decoded.bka'
+        for action, a, b in [('encrypt', backup['path'], encoded), ('decrypt', encoded, decoded)]:
+            self.wait(self.request('encryption/' + action, {'source': str(a), 'destination': str(b),
+                'options': {'algorithm': 'aes-256-gcm'}, 'secretRef': secret['secretRef']}))
+        self.wait(self.request('restores', {'snapshot': str(decoded), 'destination': str(self.root / 'restored')}))
+        self.assertEqual((self.root / 'restored/data.txt').read_bytes(), (source / 'data.txt').read_bytes())
+        code, snapshots = self.request('snapshots')
+        self.assertEqual(code, 200)
+        self.assertTrue(any(Path(item['path']) == Path(backup['path']) for item in snapshots))
+
+    def test_combined_policies_never_silently_fall_back(self):
+        source = self.root / 'source'; source.mkdir()
+        (source / 'keep.txt').write_text('keep')
+        options = {'mode': 'incremental', 'filters': {'names': ['*.txt']}}
+        code, _ = self.request('backups', {'source': str(source), 'destination': str(self.root / 'rejected'), 'options': options})
+        self.assertEqual(code, 400)
+        self.assertFalse((self.root / 'rejected').exists())
+        code, _ = self.request('tasks', {'name': 'unsupported combination', 'source': str(source),
+            'destination': str(self.root / 'rejected'), 'options': options})
+        self.assertEqual(code, 400)
+        self.assertEqual(self.server.store.list_tasks(), [])
+        self.server.force_python = True
+        code, _ = self.request('backups', {'source': str(source), 'destination': str(self.root / 'rejected'),
+            'options': {'compression': {'algorithm': 'rle-block-v1'}}})
+        self.assertEqual(code, 400)
+        self.assertFalse((self.root / 'rejected').exists())
+
     def test_codec_ports_and_invalid_options_do_not_write(self):
         source = self.root / 'input'; source.write_bytes(b'z' * 90000)
         encoded, output = self.root / 'encoded', self.root / 'output'

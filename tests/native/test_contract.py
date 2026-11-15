@@ -3,19 +3,19 @@ import json
 from pathlib import Path
 import re
 import sys
-import tempfile
 import threading
 import time
 import unittest
 from urllib.error import HTTPError
-from urllib.request import Request, build_opener, ProxyHandler
-urlopen = build_opener(ProxyHandler({})).open
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
 from api_contract import OPERATIONS, REQUIREMENTS, SCHEMAS, match_operation, openapi, validate
 from server import DemoServer
 from scripts.generate_api_contract import outputs
+from support import WorkspaceTemporaryDirectory
 
 
 class ContractTests(unittest.TestCase):
@@ -101,30 +101,33 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(result["operations"], OPERATIONS)
         self.assertEqual(result["algorithms"]["compression"], ["rle-block-v1"])
         self.assertEqual(result["algorithms"]["archive"], ["bkn-container-v2"])
+        self.assertTrue(result["algorithms"]["encryption"])
+        self.assertFalse(result["algorithms"]["encryption"][0]["selfImplemented"])
         self.assertEqual(result["algorithmPolicy"]["compression"], "self_implemented_only")
         self.assertEqual(result["algorithmPolicy"]["encryption"], "libraries_allowed")
-        self.assertEqual(result["persistence"], "sqlite_backend")
+        self.assertIn("backend_json", result["persistence"])
+        self.assertFalse(result["automation"]["runs_after_process_exit"])
 
     def test_requests_cannot_silently_enable_extensions(self):
-        with tempfile.TemporaryDirectory(prefix="contract-") as temp:
+        with WorkspaceTemporaryDirectory(prefix="contract-") as temp:
             root = Path(temp).resolve()
             source = root / "source"
             source.mkdir()
-            for options in [{"mode": "incremental"}, {"compression": {"algorithm": "huffman-v1"}},
+            for options in [{"compression": {"algorithm": "huffman-v1"}},
                             {"archive": {"algorithm": "bkn-container-v1"}}, {"encryption": {"algorithm": "aes-gcm", "secretRef": "temporary"}},
                             {"metadata": {"preserve": ["owner"]}},
                             {"fileTypes": {"symlinks": "preserve"}}]:
                 for path in ["/api/v1/backups", "/api/backup"]:
                     with self.subTest(options=options, path=path):
                         code, result = self.request("POST", path, {"source": str(source), "destination": str(root / "backup"), "options": options})
-                        self.assertEqual(code, 501, result)
+                        self.assertEqual(code, 400 if "compression" in options or "archive" in options else 501, result)
                         self.assertFalse((root / "backup").exists())
             code, _ = self.request("POST", "/api/v1/restores", {"snapshot": str(root / "snapshot"), "destination": str(root / "out"), "conflictPolicy": "overwrite"})
             self.assertEqual(code, 501)
             self.assertFalse((root / "out").exists())
 
     def test_v1_real_backup_and_restore_use_documented_dtos(self):
-        with tempfile.TemporaryDirectory(prefix="contract-roundtrip-") as temp:
+        with WorkspaceTemporaryDirectory(prefix="contract-roundtrip-") as temp:
             root = Path(temp).resolve()
             source = root / "源目录"
             source.mkdir()

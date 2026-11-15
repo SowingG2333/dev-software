@@ -1,58 +1,182 @@
-# 归档 BackNest · P0–P4
+# 归档 BackNest：C++ / Python 备份与扩展能力 demo
 
-本地目录备份工具：真实 C++17 文件引擎、浏览器界面及 Qt WebChannel 桌面外壳、SQLite 工作区持久化、自实现六维筛选、自定义单文件容器与 RLE 压缩。当前交付范围为 P0–P4。
+一个可真实运行的本地备份工作台：目录树备份与还原、认证加密、定时/实时/增量备份、HTTPS 远端备份，均通过 `/api/v1` 统一接口执行。
 
-## 在这台 Windows 电脑试用
+- **基础闭环**：C++17 引擎负责扫描、复制、清单和 CRC32 校验；Web UI 通过仅监听 `127.0.0.1` 的 Python 通信桥调用。无 C++ 二进制时自动使用兼容的 Python 引擎，仍然执行真实文件操作。
+- **P5 加密**：AES-256-GCM + PBKDF2-HMAC-SHA256；密码只换短期内存 `secretRef`。
+- **P6 自动化**：5 字段 cron、轮询去抖实时监听、硬链接增量、可选版本保留、互斥与不重入。
+- **P7 网络**：独立 HTTPS 远端服务，用户登录、按用户隔离、分块续传、SHA-256 校验、Range 下载。
 
-双击 `start-web.cmd` 自动打开浏览器；或双击 `start-desktop.cmd` 打开 Qt 桌面窗口。两种入口默认使用同一个 `.backnest` 工作区，请先关闭一个再启动另一个。浏览器版关闭网页不会关闭服务，在启动终端按 Ctrl+C 结束；桌面版关闭窗口会结束其私有服务。
+> 当前版本在上游 P5–P7 基础上整合 P0–P4。加密、自动化和网络实现保留；新增 Qt WebChannel、SQLite 工作区、原生任务取消、六维筛选、自定义容器与 RLE 压缩。此次整合只验收 Windows。
 
-需要 Python 3 和 MSVC C++ 工具链；当前机器已构建引擎和 Qt 程序。桌面入口还依赖本地 `.venv/Qt/6.5.3/msvc2019_64`，不是可复制到其他电脑直接运行的独立安装包。默认端口自动选择，仅监听本机。
+Windows 双击 `start-web.cmd` 或 `start-desktop.cmd` 试用（同一工作区不要同时启动）。Qt 入口依赖 Python 服务、Qt SDK 及已构建程序，不是独立安装包。手动新建备份的第 2 步可配置筛选、属性和压缩；P5–P7 仍使用“扩展能力”页。
 
-```powershell
-python scripts/launch_web.py
-python scripts/desktop.py
-```
+自动备份沿用上游 Python 增量引擎；筛选/元数据/容器压缩目前只用于手动 C++ 完整备份。跨引擎不支持的选项组合明确拒绝，不静默退化。可先生成 `.bka`，再使用上游加密接口；解密得到 `.bka` 后用原生引擎还原。网络目录快照与增量仍沿用上游格式，不将 `.bka` 当作目录快照。
 
-## 试用步骤
+修改时间和基本权限可保留；完整 ACL、所有权、扩展属性、符号链接和特殊文件保真仍不支持。算法格式见 [FORMAT](docs/FORMAT.md)，Windows 逐项检查见 [P0–P4 验收](docs/P0_P4_ACCEPTANCE.md)。
 
-1. 新建备份：填写名称、源目录、备份位置（绝对路径，源与备份位置不能互相包含）。
-2. 备份选项：可设置路径、类型、名称、修改时间、大小、所有者六类筛选；点击预览检查清单。留空表示不限制。
-3. 勾选单文件容器和压缩，创建任务后点击运行。成功生成独立 `.bka` 文件；未开启容器时生成 `snapshot-*` 目录。
-4. 在数据还原中选择版本，填入新目录或空目录。还原会先校验内容，拒绝覆盖非空目标。
-5. 退出并重开，检查任务、版本、设置仍在。任务运行时可取消；提交已开始时会明确拒绝迟到的取消。
+## 当前状态
 
-也可运行 `python scripts/demo.py` 生成独立样例并比较源与还原文件的 SHA-256。样例不会自动添加到界面任务列表。删除界面记录不会删除磁盘备份。
-
-## 实现范围
-
-| 阶段 | 实现 |
+| 范围 | 状态 |
 | --- | --- |
-| P0 | 目录备份、校验、还原、目录浏览、空目录/空文件/中文路径、独立版本、真实进度 |
-| P1 | 统一 API 注册表、DTO、生成调用端/类型/OpenAPI、能力查询；预留功能明确返回 501 |
-| P2 | Qt WebChannel → C++ 适配层 → 本机 Python 服务 → C++ 引擎；SQLite 持久化、修订冲突检测、任务查询及协作取消 |
-| P3 | 六维自实现匹配、预览和执行共用筛选规则、修改时间与基本权限保留、明确拒绝不支持的文件类型 |
-| P4 | 自定义 BKNARC2 容器、64 KiB 分块 RLE 编解码、CRC32、路径安全和资源上限校验 |
+| 基础备份/还原/校验 | 已实现；C++17 引擎与 Python 兼容引擎共用 `BACKNEST 1` 清单 |
+| 接口契约 | 65 个 operationId；保留 P5–P7，新增 P2–P4 端口；独立 metadata.read/apply 等剩余预留端点仍返回 501 |
+| P5 加密 | 已实现并测试：AES-256-GCM、PBKDF2、secretRef |
+| P6 定时/实时/增量 | 已实现并测试：cron、去抖轮询、硬链接增量、版本保留 |
+| P7 网络 | 已实现并测试：HTTPS、用户隔离、上传/下载续传、SHA-256、Range |
+| 平台 | Windows 已实测 C++17 引擎（Zig/Clang 构建）、Python 引擎和 P5–P7；macOS 基础引擎沿用原实现，本轮未复测 |
+| P2–P4 | Qt 适配、SQLite 工作区、原生取消、六维筛选、修改时间/基本权限、BKNARC2 容器、RLE 压缩 |
+| 未实现 | 完整元数据保真、特殊文件保真、系统服务式后台 |
 
-普通文件、目录和空目录可备份。符号链接、Windows 重解析点和特殊文件明确拒绝；硬链接按普通文件复制内容，不保留链接关系。仅保留修改时间和基本权限，不声称完整保留 ACL、扩展属性、创建时间、所有权或 NTFS 数据流。
+详细格式、接口和验收见 [P5/P6/P7 实现说明](docs/FEATURES_P5_P7.md)。
 
-筛选同一维度中多项为 OR，维度之间为 AND；名称/路径通配符区分大小写，`?` 匹配一个 Unicode 字符，`*` 可跨目录分隔符。所有者条件是 Windows SID 或 POSIX UID。保留匹配文件必需的父目录。文件正在变化时可能失败；本工具不提供操作系统级原子快照。
+## 启动界面
 
-CRC32 用于意外损坏检测，不提供认证加密。默认容器解码上限 8 GiB、200,000 个条目。随机数据等不可压缩块保存为原始块，因此压缩不保证文件变小。加密、定时/实时、增量及网络备份不在此次范围内。
+需要 Python 3.10+。有 C++ 二进制时优先使用；没有时自动回退到 Python 兼容引擎。
 
-## 验证与文档
-
-```powershell
-python -m unittest discover -s tests/native -v
-python scripts/demo.py
-python scripts/check_desktop.py
-python scripts/generate_api_contract.py
+```sh
+python server.py
 ```
 
-2026-11-15 Windows：36 项自动测试运行，34 项通过，2 项因平台条件跳过；独立样例 SHA-256/目录一致。Qt 已构建、启动，并通过真实 WebChannel 筛选→压缩备份→校验→还原→配置保存测试；独立 SHA-256 比较一致。按用户最新要求，此次仅验收 Windows；macOS 未验证，不计入此次交付条件。
+打开 <http://127.0.0.1:4173/>。右上角显示“本机引擎 · C++17”或“本机引擎 · Python”。
 
-- [逐项验收说明](docs/P0_P4_ACCEPTANCE.md)
-- [容器和压缩格式](docs/FORMAT.md)
-- [当前验证记录](docs/VALIDATION.md)
-- [接口需求映射](docs/REQUIREMENTS_AUDIT.md)
+```sh
+python server.py --port 4175
+python server.py --state-dir .backnest/my-state
+```
 
-实现位于 `core/main.cpp`、`core/policies.hpp`、`core/container.hpp`；应用服务在 `server.py`，持久化在 `repository.py`，桌面适配在 `desktop/main.cpp`。构建目录、测试备份、SQLite 数据及本机 Qt 依赖均不提交。
+## 使用流程
+
+### 基础备份与还原
+
+1. **新建备份**：填写名称，选择源目录和备份位置。
+2. **执行备份**：创建任务本身不复制文件；点击“运行”后进度来自实际文件操作。
+3. **查看版本**：每次成功备份生成独立 `snapshot-*` 目录。
+4. **数据还原**：选择版本，填写新目录或空目录；先校验再写入。
+5. **导入备份**：界面记录清空后，可校验并导入已有 `snapshot-*`。
+
+### 扩展能力页（P5/P6/P7）
+
+- **P7 网络**：填写远端 HTTPS 地址、用户名、密码、可选 CA 文件，创建远端；测试连接；上传本机 `snapshot-*`；按远端快照 ID 下载到新目录。
+- **P5 加密**：输入密码加密/解密；任务结束自动撤销 secretRef 并清空密码框。
+- **P6 自动化**：增量预览、创建 cron 计划、开始/停止实时监听、查看后端计划。
+
+## P7 远端服务
+
+P7 需要单独启动一个 HTTPS 远端（不是本机 demo 桥）：
+
+```sh
+python scripts/remote_server.py \
+  --state .backnest/remote --port 4780 \
+  --add-user demo:demo-password
+```
+
+- 默认只监听 `127.0.0.1`；生产部署需用 `--cert/--key` 指定真实证书和信任链。
+- 首次启动会在 `.backnest/tls/` 自动生成自签名测试证书；该目录被 git 忽略，**仓库不保存私钥**。
+- 主服务创建远端时，`credentialRef` 的内容是两行文本：
+  ```text
+  远端用户名
+  远端密码
+  ```
+- 自签名证书测试时，`remotes.create` 的 `caFile` 填 `.backnest/tls/ca.pem`，或设置环境变量 `BACKNEST_REMOTE_CA`。
+
+远端协议：登录 token、按用户目录隔离、`POST /snapshots` 创建、`PUT .../files?path=...` 分块上传、`X-Offset` 续传、`finalize` 校验 SHA-256、`Range` 下载。
+
+## 数据格式
+
+### 目录型版本（两种引擎共用）
+
+```text
+备份位置/
+└── snapshot-<唯一标识>/
+    ├── manifest.bkn    # BACKNEST 1：源目录、文件大小、CRC32、UTF-8 相对路径
+    └── data/           # 原始文件和目录层级，包括空目录
+```
+
+- 64 KiB 流式复制；先写 `.partial-*`，校验后重命名发布。
+- 还原只接受新目录或空目录，不覆盖已有文件。
+- 增量版本用硬链接复用未变数据，但仍有完整清单，可独立还原。
+
+### 加密文件（BNE1 v1）
+
+32 字节头（作为 AEAD AAD）+ salt、nonce、密文、tag；PBKDF2-HMAC-SHA256 + AES-256-GCM。
+
+### 远端传输
+
+- 逐文件 256 KiB 分块，`X-Offset` 续传；
+- 每文件 SHA-256，finalize 时校验；
+- 下载 `Range: bytes=...`，206 部分内容；
+- 用户目录隔离，跨用户读取返回 404。
+
+## 命令行
+
+```sh
+# 有 C++ 编译器时构建原生引擎
+python scripts/build.py
+
+# C++ 基础命令
+build/backnest backup "/绝对路径/源目录" "/绝对路径/备份位置"
+build/backnest verify "/绝对路径/备份位置/snapshot-实际版本标识"
+build/backnest restore "/绝对路径/备份位置/snapshot-实际版本标识" "/绝对路径/新的还原目录"
+
+# 基础样例
+python scripts/demo.py
+
+# P5/P6/P7 完整 HTTP 演示
+python scripts/demo_extensions.py
+```
+
+Windows 上可用 Visual Studio C++ 工具，或用 Zig/Clang 的 `zig c++` 构建：
+
+```sh
+zig c++ -std=c++17 -O2 -municode core/main.cpp -o build/backnest.exe
+```
+
+本机已用 Zig 0.17.1（PyPI wheel，工具链放在工作区 `.tools/`，不入库）构建 `build/backnest.exe`，并通过 12 项 C++ 引擎测试。`build/` 被 git 忽略。
+
+## 验证
+
+```sh
+python -m unittest discover -s tests -v
+python scripts/demo_extensions.py
+```
+
+当前 Windows 结果：**85 项通过，3 项跳过**（符号链接权限、POSIX 权限）。覆盖基础 API/契约、C++ 引擎、BNE1、增量、cron、watcher、secretRef、版本保留、P7 TLS/用户隔离/续传/篡改检测和 HTTP 端到端。加密用 Node.js AES-GCM 独立向量做交叉验证（仅测试参考）。
+
+## 后端交接与接口
+
+- [P5/P6/P7 实现说明](docs/FEATURES_P5_P7.md)
+- [后端交接文档](docs/BACKEND_HANDOFF.md)
+- [全量需求核验表](docs/REQUIREMENTS_AUDIT.md)
+- [OpenAPI 契约](api/openapi.json)、[前端类型](api/backend-api.d.ts)
+- `api_contract.py` 是唯一接口注册表；`python scripts/generate_api_contract.py` 生成 OpenAPI/JS/类型/需求表。
+
+## 已知限制
+
+- `metadata.read`、`metadata.apply`、`archive.list` 仍为预留接口；备份内的修改时间/基本权限保留已实现。
+- 加密整文件读入内存；超大文件需分块 AEAD。
+- 定时只在进程存活时执行；实时监听是轮询。
+- P7 是简单远端：无带宽限制、配额、角色 ACL 管理界面；token 仅在内存；重启后需重新登录。
+- 远端用户和主服务 `users.*` 是两套账户；远端用户用 `scripts/remote_server.py --add-user` 创建。
+- 自签名证书/私钥仅用于测试，不能用于生产。
+- 不支持符号链接、特殊文件和完整元数据保真。
+- macOS 本轮未复测。
+
+## 项目文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `core/main.cpp` | C++17 备份/还原/校验引擎 |
+| `backnest/engine.py` | 兼容 Python 引擎 |
+| `backnest/crypto.py` | AES-256-GCM + PBKDF2 |
+| `backnest/remote.py` | P7 HTTPS 客户端、分块/续传 |
+| `backnest/remote_server.py` | P7 HTTPS 远端服务、用户隔离 |
+| `backnest/scheduler.py` | cron、下次执行、错过策略 |
+| `backnest/watcher.py` | 轮询去抖监听 |
+| `backnest/secrets.py` | 短期 secretRef |
+| `backnest/store.py` | 任务/计划/设置/日志/远端索引/本机用户 |
+| `server.py` | 本地 HTTP 桥、P5/P6/P7 分发 |
+| `scripts/remote_server.py` | 独立远端服务启动入口 |
+| `scripts/demo_extensions.py` | P5/P6/P7 HTTP 演示 |
+| `tests/` | 基础/扩展/P7/契约/HTTP 测试 |
+| `docs/FEATURES_P5_P7.md` | 本轮实现、格式、验收与限制 |

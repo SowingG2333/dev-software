@@ -2,6 +2,8 @@ build/
 __pycache__/
 *.pyc
 .backnest/
+tests/fixtures/tls/*.pem
+tests/fixtures/tls/*.key
 build-cmake/
 /artifacts/
 .DS_Store
